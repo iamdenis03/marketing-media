@@ -61,9 +61,9 @@ export default function AdminDashboardPage() {
 
   if (loading || !stats) {
     return (
-      <div className="flex items-center justify-center py-24 text-slate-400 space-x-2">
-        <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
-        <span>Se preiau datele despre stocare pe server...</span>
+      <div className="flex items-center justify-center py-24 text-platform-textSecondary space-x-2">
+        <Loader2 className="w-6 h-6 animate-spin text-platform-copper" />
+        <span className="font-mono text-sm">Se preiau datele despre stocare pe server...</span>
       </div>
     );
   }
@@ -76,25 +76,25 @@ export default function AdminDashboardPage() {
       <Breadcrumbs items={[{ label: 'Panou Admin Server Storage' }]} />
 
       {/* Header Banner */}
-      <div className="flex items-center justify-between bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
+      <div className="platform-card p-6 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-            <HardDrive className="w-6 h-6" />
+          <div className="p-3 rounded-2xl bg-platform-tertiary border border-platform-border">
+            <HardDrive className="w-6 h-6 text-platform-copper" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white flex items-center space-x-2">
+            <h1 className="text-xl font-bold font-display text-white flex items-center space-x-2">
               <span>Monitorizare Spațiu Disc (Server AlmaLinux)</span>
-              <ShieldCheck className="w-4 h-4 text-amber-400" />
+              <ShieldCheck className="w-4 h-4 text-platform-copper" />
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Calea pe disc: <code className="font-mono text-amber-300 bg-slate-950 px-2 py-0.5 rounded">{stats.storageBasePath}</code>
+            <p className="text-xs text-platform-textSecondary mt-1">
+              Calea pe disc: <code className="font-mono text-platform-copper bg-platform-bg px-2 py-0.5 rounded border border-platform-border">{stats.storageBasePath}</code>
             </p>
           </div>
         </div>
 
         <button
           onClick={fetchStats}
-          className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center space-x-1.5 text-xs font-semibold"
+          className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-200 transition border border-platform-border flex items-center space-x-2 text-xs font-semibold"
           title="Reîmprospătează datele"
         >
           <RefreshCw className="w-4 h-4" />
@@ -103,42 +103,42 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         
         {/* Total Disk Space */}
-        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl space-y-3">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+        <div className="platform-card p-6 border-l-4 border-l-platform-blue space-y-4">
+          <div className="flex items-center justify-between text-platform-textSecondary text-xs font-mono font-semibold uppercase tracking-wider">
             <span>Capacitate Totală Disc</span>
-            <Server className="w-4 h-4 text-blue-400" />
+            <Server className="w-4 h-4 text-platform-blue" />
           </div>
-          <p className="text-2xl font-black text-white">{formatBytes(stats.totalBytes)}</p>
-          <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-            <div className="bg-blue-500 h-full rounded-full" style={{ width: `${totalUsedPercent}%` }} />
+          <p className="text-3xl font-bold font-mono text-white tracking-tight">{formatBytes(stats.totalBytes)}</p>
+          <div className="w-full bg-platform-bg rounded-full h-2 overflow-hidden border border-platform-border">
+            <div className="bg-platform-blue h-full rounded-full" style={{ width: `${totalUsedPercent}%` }} />
           </div>
-          <p className="text-[11px] text-slate-500">{totalUsedPercent}% Utilizat pe întreg serverul</p>
+          <p className="text-xs font-mono text-platform-textMuted">{totalUsedPercent}% Utilizat pe întreg serverul</p>
         </div>
 
         {/* Media Storage Folder Space */}
-        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl space-y-3">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+        <div className="platform-card p-6 border-l-4 border-l-platform-copper space-y-4">
+          <div className="flex items-center justify-between text-platform-textSecondary text-xs font-mono font-semibold uppercase tracking-wider">
             <span>Ocupat de Folder-ul Media</span>
-            <Folder className="w-4 h-4 text-amber-400" />
+            <Folder className="w-4 h-4 text-platform-copper" />
           </div>
-          <p className="text-2xl font-black text-amber-400">{formatBytes(stats.mediaUsedBytes)}</p>
-          <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-            <div className="bg-amber-500 h-full rounded-full" style={{ width: `${mediaPercent}%` }} />
+          <p className="text-3xl font-bold font-mono text-platform-copper tracking-tight">{formatBytes(stats.mediaUsedBytes)}</p>
+          <div className="w-full bg-platform-bg rounded-full h-2 overflow-hidden border border-platform-border">
+            <div className="bg-platform-copper h-full rounded-full" style={{ width: `${mediaPercent}%` }} />
           </div>
-          <p className="text-[11px] text-slate-500">{mediaPercent}% din spațiul total al serverului</p>
+          <p className="text-xs font-mono text-platform-textMuted">{mediaPercent}% din spațiul total al serverului</p>
         </div>
 
         {/* Free Space */}
-        <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl space-y-3">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+        <div className="platform-card p-6 border-l-4 border-l-platform-green space-y-4">
+          <div className="flex items-center justify-between text-platform-textSecondary text-xs font-mono font-semibold uppercase tracking-wider">
             <span>Spațiu Liber Rămas</span>
-            <PieChart className="w-4 h-4 text-emerald-400" />
+            <PieChart className="w-4 h-4 text-platform-green" />
           </div>
-          <p className="text-2xl font-black text-emerald-400">{formatBytes(stats.freeBytes)}</p>
-          <p className="text-[11px] text-slate-500">Disponibil direct pentru noi fișiere media</p>
+          <p className="text-3xl font-bold font-mono text-platform-green tracking-tight">{formatBytes(stats.freeBytes)}</p>
+          <p className="text-xs font-mono text-platform-textMuted">Disponibil direct pentru noi fișiere media</p>
         </div>
 
       </div>

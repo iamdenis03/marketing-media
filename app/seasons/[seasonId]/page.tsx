@@ -46,7 +46,6 @@ export default function SeasonEventsPage() {
 
   const fetchData = async () => {
     try {
-      // Fetch season info
       const sRes = await fetch('/api/seasons');
       if (sRes.ok) {
         const seasons = await sRes.json();
@@ -54,7 +53,6 @@ export default function SeasonEventsPage() {
         if (found) setSeason(found);
       }
 
-      // Fetch events for season
       const eRes = await fetch(`/api/events?seasonId=${seasonId}`);
       if (eRes.ok) {
         const eData = await eRes.json();
@@ -107,9 +105,9 @@ export default function SeasonEventsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24 text-slate-400 space-x-2">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
-        <span>Se încarcă evenimentele...</span>
+      <div className="flex items-center justify-center py-24 text-platform-textSecondary space-x-2">
+        <Loader2 className="w-6 h-6 animate-spin text-platform-green" />
+        <span className="font-mono text-sm">Se încarcă evenimentele...</span>
       </div>
     );
   }
@@ -121,15 +119,17 @@ export default function SeasonEventsPage() {
       <Breadcrumbs items={[{ label: season?.name || 'Sezon' }]} />
 
       {/* Season Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/30 p-6 rounded-3xl border border-slate-800 shadow-xl">
+      <div className="platform-card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2">
-            <FolderKanban className="w-6 h-6 text-amber-400" />
-            <h1 className="text-xl sm:text-2xl font-bold text-white">{season?.name}</h1>
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-xl bg-platform-tertiary border border-platform-border">
+              <FolderKanban className="w-6 h-6 text-platform-green" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold font-display text-white">{season?.name}</h1>
           </div>
           {season && (
-            <p className="text-xs sm:text-sm text-slate-400 mt-1 flex items-center space-x-2">
-              <Calendar className="w-3.5 h-3.5 text-amber-400" />
+            <p className="text-xs sm:text-sm text-platform-textSecondary mt-2 flex items-center space-x-2 font-mono">
+              <Calendar className="w-3.5 h-3.5 text-platform-copper" />
               <span>
                 {new Date(season.startDate).toLocaleDateString('ro-RO')} - {new Date(season.endDate).toLocaleDateString('ro-RO')}
               </span>
@@ -140,7 +140,7 @@ export default function SeasonEventsPage() {
         {(role === 'ADMIN' || role === 'EDITOR') && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-amber-600 hover:opacity-95 text-white text-xs font-semibold shadow transition flex items-center space-x-2 shrink-0"
+            className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
           >
             <Plus className="w-4 h-4" />
             <span>Adaugă Eveniment Nou</span>
@@ -150,21 +150,21 @@ export default function SeasonEventsPage() {
 
       {/* Events Grid */}
       {events.length === 0 ? (
-        <div className="text-center py-16 bg-slate-900/30 rounded-3xl border border-slate-800">
-          <FolderKanban className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-slate-300 font-semibold text-sm">Nu există evenimente în acest sezon</h3>
-          <p className="text-xs text-slate-500 mt-1">Poți adăuga primul eveniment (ex. Regional, Național).</p>
+        <div className="platform-card text-center py-16">
+          <FolderKanban className="w-12 h-12 text-platform-textMuted mx-auto mb-3" />
+          <h3 className="text-slate-200 font-semibold text-sm">Nu există evenimente în acest sezon</h3>
+          <p className="text-xs text-platform-textSecondary mt-1">Poți adăuga primul eveniment (ex. Regional, Național).</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {events.map((evt) => (
             <div
               key={evt.id}
-              className="group bg-slate-900/80 hover:bg-slate-900 border border-slate-800 hover:border-amber-500/50 p-6 rounded-3xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-amber-500/10 flex flex-col justify-between"
+              className="platform-card p-6 flex flex-col justify-between group hover:border-platform-copper/60 transition-all duration-300 shadow-md"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold">
+                  <span className="px-3 py-1 rounded-full bg-platform-copper/10 border border-platform-copper/20 text-platform-copper text-xs font-mono font-semibold">
                     {evt._count?.days || 0} Zile
                   </span>
                   
@@ -172,26 +172,26 @@ export default function SeasonEventsPage() {
                   <a
                     href={`/api/download/event/${evt.id}`}
                     download
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-amber-600/20 text-slate-400 hover:text-amber-400 transition"
+                    className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-copper/20 text-slate-300 hover:text-platform-copper transition border border-platform-border"
                     title="Descarcă toate fișierele evenimentului ca ZIP"
                   >
                     <Download className="w-4 h-4" />
                   </a>
                 </div>
 
-                <Link href={`/events/${evt.id}`} className="block group-hover:text-blue-400 transition">
-                  <h2 className="text-lg font-bold text-white line-clamp-2">{evt.name}</h2>
+                <Link href={`/events/${evt.id}`} className="block group-hover:text-platform-green transition-colors">
+                  <h2 className="text-lg font-bold font-display text-white line-clamp-2">{evt.name}</h2>
                 </Link>
 
-                <div className="flex items-center space-x-1.5 text-xs text-slate-400">
-                  <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <div className="flex items-center space-x-2 text-xs text-platform-textSecondary">
+                  <MapPin className="w-3.5 h-3.5 text-platform-blue shrink-0" />
                   <span className="truncate">{evt.location}</span>
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                <span className="flex items-center space-x-1">
-                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
+              <div className="mt-6 pt-4 border-t border-platform-border/80 flex items-center justify-between text-xs text-platform-textSecondary font-mono">
+                <span className="flex items-center space-x-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-platform-copper" />
                   <span>
                     {new Date(evt.startDate).toLocaleDateString('ro-RO')} - {new Date(evt.endDate).toLocaleDateString('ro-RO')}
                   </span>
@@ -199,7 +199,7 @@ export default function SeasonEventsPage() {
                 
                 <Link
                   href={`/events/${evt.id}`}
-                  className="flex items-center space-x-1 text-xs font-semibold text-blue-400 hover:underline"
+                  className="flex items-center space-x-1 text-xs font-semibold text-platform-green hover:underline"
                 >
                   <span>Vezi Zilele</span>
                   <ChevronRight className="w-4 h-4" />
@@ -212,57 +212,57 @@ export default function SeasonEventsPage() {
 
       {/* Create Event Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <h3 className="font-bold text-lg text-white flex items-center space-x-2">
-              <Plus className="w-5 h-5 text-blue-400" />
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
+              <Plus className="w-5 h-5 text-platform-blue" />
               <span>Adaugă Eveniment Nou</span>
             </h3>
 
             <form onSubmit={handleCreateEvent} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Nume Eveniment</label>
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Nume Eveniment</label>
                 <input
                   type="text"
                   required
                   placeholder="Ex: Regional Cluj-Napoca 2026"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Locație</label>
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Locație</label>
                 <input
                   type="text"
                   required
                   placeholder="Ex: Sala Polivalentă Cluj"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Data Început</label>
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Început</label>
                   <input
                     type="date"
                     required
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Data Sfârșit</label>
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Sfârșit</label>
                   <input
                     type="date"
                     required
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
                   />
                 </div>
               </div>
@@ -272,10 +272,10 @@ export default function SeasonEventsPage() {
                   type="checkbox"
                   checked={autoGenerateDays}
                   onChange={(e) => setAutoGenerateDays(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-950 text-blue-600 focus:ring-0"
+                  className="rounded border-platform-border bg-platform-bg text-platform-green focus:ring-0"
                 />
-                <span className="flex items-center space-x-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span className="flex items-center space-x-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-platform-copper" />
                   <span>Generează automat zilele din intervalul calendaristic</span>
                 </span>
               </label>
@@ -284,14 +284,14 @@ export default function SeasonEventsPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 transition"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
                 >
                   Anulează
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition flex items-center space-x-1"
+                  className="btn-platform-primary px-4 py-2 text-xs flex items-center space-x-1"
                 >
                   {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvează</span>}
                 </button>
