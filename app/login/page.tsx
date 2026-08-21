@@ -43,11 +43,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-platform-bg p-4 relative overflow-hidden">
-      {/* Glow Ambient */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-platform-green/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="w-full max-w-md bg-platform-card border border-platform-border rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl z-10 space-y-6">
+    <div className="min-h-[80vh] flex items-center justify-center p-4">
+      <div className="w-full max-w-md platform-card p-6 sm:p-8 space-y-6 shadow-2xl">
         
         {/* Header Logo */}
         <div className="text-center space-y-2">
