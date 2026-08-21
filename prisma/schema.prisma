@@ -1,0 +1,88 @@
+// Prisma schema for VVRobots 19116 Marketing Media Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         Role         @default(VIEWER)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  uploads      MediaAsset[]
+}
+
+model Season {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events    Event[]
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  seasonId  String
+  season    Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  name      String
+  location  String
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  days      Day[]
+}
+
+model Day {
+  id          String       @id @default(cuid())
+  eventId     String
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  date        DateTime
+  label       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  mediaAssets MediaAsset[]
+}
+
+model Tag {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  mediaAssets MediaAsset[]
+}
+
+model MediaAsset {
+  id            String    @id @default(cuid())
+  dayId         String
+  day           Day       @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  type          MediaType
+  fileName      String
+  filePath      String
+  thumbnailPath String?
+  uploadedById  String
+  uploadedBy    User      @relation(fields: [uploadedById], references: [id])
+  uploadedAt    DateTime  @default(now())
+  fileSize      Int
+  originalName  String
+  tags          Tag[]
+}

@@ -16,6 +16,12 @@
 # production
 /build
 
+# media storage local & db
+/media-storage/
+*.db
+*.db-journal
+.env
+
 # misc
 .DS_Store
 *.pem
