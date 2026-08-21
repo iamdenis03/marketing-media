@@ -43,27 +43,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4 relative overflow-hidden">
-      {/* Dynamic Background Accents */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-600/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center bg-platform-bg p-4 relative overflow-hidden">
+      {/* Glow Ambient */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-platform-green/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl z-10 space-y-6">
+      <div className="w-full max-w-md bg-platform-card border border-platform-border rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl z-10 space-y-6">
         
         {/* Header Logo */}
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-amber-500 to-blue-600 shadow-xl mb-2">
-            <Film className="w-8 h-8 text-white" />
+          <div className="inline-flex p-3 rounded-2xl bg-platform-tertiary border border-platform-border shadow-xl mb-2">
+            <Film className="w-8 h-8 text-platform-green" />
           </div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-amber-400 to-orange-400 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold font-display text-slate-100 tracking-tight">
             VVROBOTS 19116
           </h1>
-          <p className="text-xs text-slate-400">Platformă Organizare Media Marketing</p>
+          <p className="text-xs font-mono text-platform-textSecondary">Platformă Organizare Media Marketing</p>
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center space-x-2 animate-fadeIn">
+          <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono flex items-center space-x-2 animate-fadeIn">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -72,31 +71,31 @@ export default function LoginPage() {
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Email</label>
+            <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Email</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-platform-textMuted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nume@vvrobots.ro"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 rounded-xl border border-slate-800 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+                className="w-full pl-10 pr-4 py-2.5 bg-platform-bg rounded-xl border border-platform-border text-sm text-slate-200 placeholder-platform-textMuted focus:outline-none focus:border-platform-green transition"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Parolă</label>
+            <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Parolă</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-platform-textMuted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 rounded-xl border border-slate-800 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+                className="w-full pl-10 pr-4 py-2.5 bg-platform-bg rounded-xl border border-platform-border text-sm text-slate-200 placeholder-platform-textMuted focus:outline-none focus:border-platform-green transition"
               />
             </div>
           </div>
@@ -104,7 +103,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-blue-600 via-amber-600 to-orange-600 hover:opacity-95 text-white shadow-lg shadow-blue-500/20 transition flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="btn-platform-primary w-full py-3 rounded-xl font-semibold text-sm shadow flex items-center justify-center space-x-2 disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -118,29 +117,29 @@ export default function LoginPage() {
         </form>
 
         {/* Demo Quick Logins */}
-        <div className="pt-4 border-t border-slate-800 space-y-2">
-          <p className="text-[11px] text-slate-500 text-center font-semibold uppercase tracking-wider">
+        <div className="pt-4 border-t border-platform-border space-y-2 font-mono">
+          <p className="text-[11px] text-platform-textMuted text-center font-semibold uppercase tracking-wider">
             Conturi Demo (Apasă pentru autocompletare):
           </p>
           <div className="grid grid-cols-3 gap-2 text-center">
             <button
               type="button"
               onClick={() => fillCredentials('admin@vvrobots.ro', 'admin123')}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-amber-400 border border-slate-700 transition"
+              className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-[11px] font-semibold text-platform-green border border-platform-border transition"
             >
               ADMIN
             </button>
             <button
               type="button"
               onClick={() => fillCredentials('editor@vvrobots.ro', 'editor123')}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-blue-400 border border-slate-700 transition"
+              className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-[11px] font-semibold text-platform-blue border border-platform-border transition"
             >
               EDITOR
             </button>
             <button
               type="button"
               onClick={() => fillCredentials('viewer@vvrobots.ro', 'viewer123')}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-emerald-400 border border-slate-700 transition"
+              className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-[11px] font-semibold text-platform-green border border-platform-border transition"
             >
               VIEWER
             </button>

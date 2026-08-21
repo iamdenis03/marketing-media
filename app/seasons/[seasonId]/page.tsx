@@ -129,7 +129,7 @@ export default function SeasonEventsPage() {
           </div>
           {season && (
             <p className="text-xs sm:text-sm text-platform-textSecondary mt-2 flex items-center space-x-2 font-mono">
-              <Calendar className="w-3.5 h-3.5 text-platform-copper" />
+              <Calendar className="w-3.5 h-3.5 text-platform-green" />
               <span>
                 {new Date(season.startDate).toLocaleDateString('ro-RO')} - {new Date(season.endDate).toLocaleDateString('ro-RO')}
               </span>
@@ -160,11 +160,11 @@ export default function SeasonEventsPage() {
           {events.map((evt) => (
             <div
               key={evt.id}
-              className="platform-card p-6 flex flex-col justify-between group hover:border-platform-copper/60 transition-all duration-300 shadow-md"
+              className="platform-card p-6 flex flex-col justify-between group hover:border-platform-green/60 transition-all duration-300 shadow-md"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="px-3 py-1 rounded-full bg-platform-copper/10 border border-platform-copper/20 text-platform-copper text-xs font-mono font-semibold">
+                  <span className="px-3 py-1 rounded-full bg-platform-green/10 border border-platform-green/20 text-platform-green text-xs font-mono font-semibold">
                     {evt._count?.days || 0} Zile
                   </span>
                   
@@ -172,7 +172,7 @@ export default function SeasonEventsPage() {
                   <a
                     href={`/api/download/event/${evt.id}`}
                     download
-                    className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-copper/20 text-slate-300 hover:text-platform-copper transition border border-platform-border"
+                    className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-green/20 text-slate-300 hover:text-platform-green transition border border-platform-border"
                     title="Descarcă toate fișierele evenimentului ca ZIP"
                   >
                     <Download className="w-4 h-4" />
@@ -191,7 +191,7 @@ export default function SeasonEventsPage() {
 
               <div className="mt-6 pt-4 border-t border-platform-border/80 flex items-center justify-between text-xs text-platform-textSecondary font-mono">
                 <span className="flex items-center space-x-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-platform-copper" />
+                  <Calendar className="w-3.5 h-3.5 text-platform-green" />
                   <span>
                     {new Date(evt.startDate).toLocaleDateString('ro-RO')} - {new Date(evt.endDate).toLocaleDateString('ro-RO')}
                   </span>
@@ -215,7 +215,7 @@ export default function SeasonEventsPage() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
-              <Plus className="w-5 h-5 text-platform-blue" />
+              <Plus className="w-5 h-5 text-platform-green" />
               <span>Adaugă Eveniment Nou</span>
             </h3>
 
@@ -275,7 +275,7 @@ export default function SeasonEventsPage() {
                   className="rounded border-platform-border bg-platform-bg text-platform-green focus:ring-0"
                 />
                 <span className="flex items-center space-x-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-platform-copper" />
+                  <Sparkles className="w-3.5 h-3.5 text-platform-green" />
                   <span>Generează automat zilele din intervalul calendaristic</span>
                 </span>
               </label>

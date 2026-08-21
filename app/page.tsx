@@ -101,7 +101,7 @@ export default function SeasonsPage() {
         <div>
           <div className="flex items-center space-x-3">
             <div className="p-2.5 rounded-xl bg-platform-tertiary border border-platform-border">
-              <Trophy className="w-6 h-6 text-platform-copper" />
+              <Trophy className="w-6 h-6 text-platform-green" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold font-display text-slate-100">Sezoane Competiționale FTC</h1>
           </div>
@@ -151,7 +151,7 @@ export default function SeasonsPage() {
 
               <div className="mt-6 pt-4 border-t border-platform-border/80 flex items-center justify-between text-xs text-platform-textSecondary font-mono">
                 <span className="flex items-center space-x-2">
-                  <Calendar className="w-3.5 h-3.5 text-platform-copper" />
+                  <Calendar className="w-3.5 h-3.5 text-platform-green" />
                   <span>
                     {new Date(season.startDate).toLocaleDateString('ro-RO')} - {new Date(season.endDate).toLocaleDateString('ro-RO')}
                   </span>
@@ -167,7 +167,7 @@ export default function SeasonsPage() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
-              <Plus className="w-5 h-5 text-platform-copper" />
+              <Plus className="w-5 h-5 text-platform-green" />
               <span>Adaugă Sezon Nou</span>
             </h3>
 

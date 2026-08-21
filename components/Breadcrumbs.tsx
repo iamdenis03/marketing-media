@@ -15,27 +15,27 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
-    <nav className="flex items-center space-x-2 text-xs sm:text-sm text-slate-400 py-3 px-1 overflow-x-auto whitespace-nowrap scrollbar-none">
+    <nav className="flex items-center space-x-2 text-xs font-mono text-platform-textSecondary py-2 px-1 overflow-x-auto whitespace-nowrap scrollbar-none">
       <Link
         href="/"
-        className="flex items-center space-x-1 hover:text-blue-400 text-slate-300 transition"
+        className="flex items-center space-x-1.5 hover:text-platform-green text-slate-300 transition"
       >
-        <Home className="w-4 h-4" />
+        <Home className="w-3.5 h-3.5 text-platform-green" />
         <span>Sezoane</span>
       </Link>
 
       {items.map((item, idx) => (
         <React.Fragment key={idx}>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+          <ChevronRight className="w-3.5 h-3.5 text-platform-textMuted shrink-0" />
           {item.href ? (
             <Link
               href={item.href}
-              className="hover:text-blue-400 text-slate-300 transition truncate max-w-[200px]"
+              className="hover:text-platform-green text-slate-300 transition truncate max-w-[200px]"
             >
               {item.label}
             </Link>
           ) : (
-            <span className="font-semibold text-blue-400 truncate max-w-[250px]">
+            <span className="font-semibold text-platform-green truncate max-w-[250px]">
               {item.label}
             </span>
           )}

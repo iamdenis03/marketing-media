@@ -62,7 +62,7 @@ export default function AdminDashboardPage() {
   if (loading || !stats) {
     return (
       <div className="flex items-center justify-center py-24 text-platform-textSecondary space-x-2">
-        <Loader2 className="w-6 h-6 animate-spin text-platform-copper" />
+        <Loader2 className="w-6 h-6 animate-spin text-platform-green" />
         <span className="font-mono text-sm">Se preiau datele despre stocare pe server...</span>
       </div>
     );
@@ -79,15 +79,15 @@ export default function AdminDashboardPage() {
       <div className="platform-card p-6 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="p-3 rounded-2xl bg-platform-tertiary border border-platform-border">
-            <HardDrive className="w-6 h-6 text-platform-copper" />
+            <HardDrive className="w-6 h-6 text-platform-green" />
           </div>
           <div>
             <h1 className="text-xl font-bold font-display text-white flex items-center space-x-2">
               <span>Monitorizare Spațiu Disc (Server AlmaLinux)</span>
-              <ShieldCheck className="w-4 h-4 text-platform-copper" />
+              <ShieldCheck className="w-4 h-4 text-platform-green" />
             </h1>
             <p className="text-xs text-platform-textSecondary mt-1">
-              Calea pe disc: <code className="font-mono text-platform-copper bg-platform-bg px-2 py-0.5 rounded border border-platform-border">{stats.storageBasePath}</code>
+              Calea pe disc: <code className="font-mono text-platform-green bg-platform-bg px-2 py-0.5 rounded border border-platform-border">{stats.storageBasePath}</code>
             </p>
           </div>
         </div>
@@ -119,14 +119,14 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Media Storage Folder Space */}
-        <div className="platform-card p-6 border-l-4 border-l-platform-copper space-y-4">
+        <div className="platform-card p-6 border-l-4 border-l-platform-green space-y-4">
           <div className="flex items-center justify-between text-platform-textSecondary text-xs font-mono font-semibold uppercase tracking-wider">
             <span>Ocupat de Folder-ul Media</span>
-            <Folder className="w-4 h-4 text-platform-copper" />
+            <Folder className="w-4 h-4 text-platform-green" />
           </div>
-          <p className="text-3xl font-bold font-mono text-platform-copper tracking-tight">{formatBytes(stats.mediaUsedBytes)}</p>
+          <p className="text-3xl font-bold font-mono text-platform-green tracking-tight">{formatBytes(stats.mediaUsedBytes)}</p>
           <div className="w-full bg-platform-bg rounded-full h-2 overflow-hidden border border-platform-border">
-            <div className="bg-platform-copper h-full rounded-full" style={{ width: `${mediaPercent}%` }} />
+            <div className="bg-platform-green h-full rounded-full" style={{ width: `${mediaPercent}%` }} />
           </div>
           <p className="text-xs font-mono text-platform-textMuted">{mediaPercent}% din spațiul total al serverului</p>
         </div>

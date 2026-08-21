@@ -70,10 +70,10 @@ export function Lightbox({ asset, assets, onClose, onSelect }: LightboxProps) {
       {/* Top Header Bar */}
       <div className="flex items-center justify-between z-10">
         <div className="flex items-center space-x-3">
-          <span className="text-xs font-semibold px-2.5 py-1 rounded bg-blue-500/30 text-blue-300 border border-blue-500/40">
+          <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-platform-green/20 text-platform-green border border-platform-green/30">
             {asset.type}
           </span>
-          <h3 className="font-semibold text-sm sm:text-base text-slate-200 truncate max-w-[250px] sm:max-w-md">
+          <h3 className="font-semibold text-sm sm:text-base text-slate-200 truncate max-w-[250px] sm:max-w-md font-display">
             {asset.originalName}
           </h3>
         </div>
@@ -82,7 +82,7 @@ export function Lightbox({ asset, assets, onClose, onSelect }: LightboxProps) {
           <a
             href={mediaUrl}
             download={asset.originalName}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold shadow transition"
+            className="btn-platform-primary flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold shadow"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Descarcă</span>
@@ -90,9 +90,9 @@ export function Lightbox({ asset, assets, onClose, onSelect }: LightboxProps) {
 
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition"
+            className="p-2 rounded-full bg-platform-tertiary hover:bg-platform-border text-slate-300 transition border border-platform-border"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -104,13 +104,13 @@ export function Lightbox({ asset, assets, onClose, onSelect }: LightboxProps) {
           <>
             <button
               onClick={handlePrev}
-              className="absolute left-2 sm:left-4 z-20 p-3 rounded-full bg-slate-900/60 hover:bg-slate-800 text-white transition border border-slate-700/50"
+              className="absolute left-2 sm:left-4 z-20 p-3 rounded-full bg-platform-card/80 hover:bg-platform-tertiary text-white transition border border-platform-border"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
             <button
               onClick={handleNext}
-              className="absolute right-2 sm:right-4 z-20 p-3 rounded-full bg-slate-900/60 hover:bg-slate-800 text-white transition border border-slate-700/50"
+              className="absolute right-2 sm:right-4 z-20 p-3 rounded-full bg-platform-card/80 hover:bg-platform-tertiary text-white transition border border-platform-border"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
@@ -122,27 +122,27 @@ export function Lightbox({ asset, assets, onClose, onSelect }: LightboxProps) {
           <img
             src={mediaUrl}
             alt={asset.originalName}
-            className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+            className="max-h-full max-w-full object-contain rounded-xl shadow-2xl"
           />
         ) : (
           <video
             src={mediaUrl}
             controls
             autoPlay
-            className="max-h-full max-w-full rounded-lg shadow-2xl border border-slate-800"
+            className="max-h-full max-w-full rounded-xl shadow-2xl border border-platform-border"
           />
         )}
       </div>
 
       {/* Footer Info */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 bg-slate-900/80 p-3 rounded-xl border border-slate-800 gap-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-platform-textSecondary bg-platform-card p-3 rounded-xl border border-platform-border gap-2 font-mono">
         <div className="flex items-center space-x-4">
-          <span className="flex items-center space-x-1">
-            <User className="w-3.5 h-3.5 text-blue-400" />
+          <span className="flex items-center space-x-1.5">
+            <User className="w-3.5 h-3.5 text-platform-green" />
             <span>{asset.uploadedBy?.name || 'Incert'}</span>
           </span>
-          <span className="flex items-center space-x-1">
-            <Calendar className="w-3.5 h-3.5 text-amber-400" />
+          <span className="flex items-center space-x-1.5">
+            <Calendar className="w-3.5 h-3.5 text-platform-green" />
             <span>{new Date(asset.uploadedAt).toLocaleDateString('ro-RO')}</span>
           </span>
           <span>{formatBytes(asset.fileSize)}</span>
@@ -151,11 +151,11 @@ export function Lightbox({ asset, assets, onClose, onSelect }: LightboxProps) {
         {/* Tags */}
         {asset.tags && asset.tags.length > 0 && (
           <div className="flex items-center space-x-1 overflow-x-auto">
-            <TagIcon className="w-3.5 h-3.5 text-slate-500" />
+            <TagIcon className="w-3.5 h-3.5 text-platform-textMuted" />
             {asset.tags.map((t) => (
               <span
                 key={t.id}
-                className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-amber-300 font-mono text-[11px]"
+                className="px-2 py-0.5 rounded bg-platform-green/10 border border-platform-green/20 text-platform-green text-[11px]"
               >
                 #{t.name}
               </span>

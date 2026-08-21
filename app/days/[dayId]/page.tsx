@@ -37,14 +37,11 @@ export default function DayGalleryPage() {
 
   const fetchDayData = async () => {
     try {
-      const res = await fetch(`/api/days?eventId=`);
-      // Or fetch assets for day
       const dRes = await fetch(`/api/days`);
       if (dRes.ok) {
         const days = await dRes.json();
         const found = days.find((d: any) => d.id === dayId);
         if (found) {
-          // Fetch full day details with mediaAssets
           const detailedRes = await fetch(`/api/days/detail?dayId=${dayId}`);
           if (detailedRes.ok) {
             const data = await detailedRes.json();
@@ -82,9 +79,9 @@ export default function DayGalleryPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24 text-slate-400 space-x-2">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
-        <span>Se încarcă fișierele media...</span>
+      <div className="flex items-center justify-center py-24 text-platform-textSecondary space-x-2">
+        <Loader2 className="w-6 h-6 animate-spin text-platform-green" />
+        <span className="font-mono text-sm">Se încarcă fișierele media...</span>
       </div>
     );
   }
@@ -104,15 +101,17 @@ export default function DayGalleryPage() {
       />
 
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-blue-950/40 p-6 rounded-3xl border border-slate-800 shadow-xl">
+      <div className="platform-card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center space-x-2">
-            <Images className="w-6 h-6 text-amber-400" />
-            <h1 className="text-xl sm:text-2xl font-bold text-white">{dayTitle}</h1>
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-xl bg-platform-tertiary border border-platform-border">
+              <Images className="w-6 h-6 text-platform-green" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold font-display text-white">{dayTitle}</h1>
           </div>
           {day?.date && (
-            <p className="text-xs sm:text-sm text-slate-400 flex items-center space-x-1.5">
-              <Calendar className="w-3.5 h-3.5 text-amber-400" />
+            <p className="text-xs sm:text-sm text-platform-textSecondary font-mono flex items-center space-x-2 mt-1">
+              <Calendar className="w-3.5 h-3.5 text-platform-green" />
               <span>Data: {new Date(day.date).toLocaleDateString('ro-RO')}</span>
             </p>
           )}
@@ -123,7 +122,7 @@ export default function DayGalleryPage() {
           <a
             href={`/api/download/day/${dayId}`}
             download
-            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs font-semibold shadow transition flex items-center space-x-2 shrink-0"
+            className="px-4 py-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-mono font-semibold shadow transition flex items-center space-x-2 shrink-0"
           >
             <Download className="w-4 h-4" />
             <span>Descarcă ZIP Ziua</span>
@@ -133,7 +132,7 @@ export default function DayGalleryPage() {
           {(role === 'ADMIN' || role === 'EDITOR') && (
             <button
               onClick={() => setShowUploadModal(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-amber-600 hover:opacity-95 text-white text-xs font-semibold shadow transition flex items-center space-x-2 shrink-0"
+              className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
             >
               <UploadCloud className="w-4 h-4" />
               <span>Încarcă Poze/Video</span>

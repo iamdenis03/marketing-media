@@ -71,8 +71,8 @@ export function Navbar() {
               <div className="flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-mono font-semibold border bg-platform-tertiary border-platform-border text-slate-200">
                 {role === 'ADMIN' && (
                   <>
-                    <ShieldCheck className="w-3.5 h-3.5 text-platform-copper" />
-                    <span className="text-platform-copper">ADMIN</span>
+                    <ShieldCheck className="w-3.5 h-3.5 text-platform-green" />
+                    <span className="text-platform-green">ADMIN</span>
                   </>
                 )}
                 {role === 'EDITOR' && (
@@ -96,7 +96,7 @@ export function Navbar() {
                   className="flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-200 border border-platform-border transition"
                   title="Panou Administrare Spațiu Disc"
                 >
-                  <HardDrive className="w-4 h-4 text-platform-copper" />
+                  <HardDrive className="w-4 h-4 text-platform-green" />
                   <span className="hidden md:inline">Storage Server</span>
                 </Link>
               )}
@@ -109,7 +109,7 @@ export function Navbar() {
             className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 transition border border-platform-border"
             title="Schimbă tema"
           >
-            {darkMode ? <Sun className="w-4 h-4 text-platform-copper" /> : <Moon className="w-4 h-4 text-platform-blue" />}
+            {darkMode ? <Sun className="w-4 h-4 text-platform-green" /> : <Moon className="w-4 h-4 text-platform-blue" />}
           </button>
 
           {/* User Profile / Logout */}
