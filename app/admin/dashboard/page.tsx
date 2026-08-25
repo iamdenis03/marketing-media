@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { HardDrive, Server, ShieldCheck, PieChart, RefreshCw, Folder, Loader2 } from 'lucide-react';
+import { HardDrive, Server, ShieldCheck, PieChart, RefreshCw, Folder, Loader2, Users, UserCheck } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -14,15 +14,24 @@ interface DiskStats {
   storageBasePath: string;
 }
 
+interface UserItem {
+  id: string;
+  email: string;
+  name: string;
+  role: 'ADMIN' | 'EDITOR' | 'VIEWER';
+  createdAt: string;
+}
+
 export default function AdminDashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
   const [stats, setStats] = useState<DiskStats | null>(null);
+  const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingUser, setUpdatingUser] = useState<string | null>(null);
 
   const fetchStats = async () => {
-    setLoading(true);
     try {
       const res = await fetch('/api/admin/disk-space');
       if (res.ok) {
@@ -35,9 +44,25 @@ export default function AdminDashboardPage() {
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users');
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadAll = async () => {
+    setLoading(true);
+    await Promise.all([fetchStats(), fetchUsers()]);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -46,12 +71,34 @@ export default function AdminDashboardPage() {
       if (role !== 'ADMIN') {
         router.push('/');
       } else {
-        fetchStats();
+        loadAll();
       }
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }
   }, [status]);
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setUpdatingUser(userId);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, newRole }),
+      });
+
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la schimbarea rolului.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingUser(null);
+    }
+  };
 
   const formatBytes = (bytes: number) => {
     if (!bytes || bytes === 0) return '0 GB';
@@ -63,7 +110,7 @@ export default function AdminDashboardPage() {
     return (
       <div className="flex items-center justify-center py-24 text-platform-textSecondary space-x-2">
         <Loader2 className="w-6 h-6 animate-spin text-platform-green" />
-        <span className="font-mono text-sm">Se preiau datele despre stocare pe server...</span>
+        <span className="font-mono text-sm">Se preiau datele despre stocare și utilizatori...</span>
       </div>
     );
   }
@@ -72,18 +119,18 @@ export default function AdminDashboardPage() {
   const totalUsedPercent = stats.totalBytes > 0 ? (((stats.totalBytes - stats.freeBytes) / stats.totalBytes) * 100).toFixed(1) : '0';
 
   return (
-    <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Panou Admin Server Storage' }]} />
+    <div className="space-y-8">
+      <Breadcrumbs items={[{ label: 'Panou Admin & Drepturi Accese' }]} />
 
       {/* Header Banner */}
-      <div className="platform-card p-6 flex items-center justify-between">
+      <div className="platform-card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <div className="p-3 rounded-2xl bg-platform-tertiary border border-platform-border">
             <HardDrive className="w-6 h-6 text-platform-green" />
           </div>
           <div>
             <h1 className="text-xl font-bold font-display text-white flex items-center space-x-2">
-              <span>Monitorizare Spațiu Disc (Server AlmaLinux)</span>
+              <span>Administrare Server & Roluri Utilizatori</span>
               <ShieldCheck className="w-4 h-4 text-platform-green" />
             </h1>
             <p className="text-xs text-platform-textSecondary mt-1">
@@ -93,7 +140,7 @@ export default function AdminDashboardPage() {
         </div>
 
         <button
-          onClick={fetchStats}
+          onClick={loadAll}
           className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-200 transition border border-platform-border flex items-center space-x-2 text-xs font-semibold"
           title="Reîmprospătează datele"
         >
@@ -102,7 +149,7 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
-      {/* Cards Grid */}
+      {/* Disk Storage Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         
         {/* Total Disk Space */}
@@ -141,6 +188,76 @@ export default function AdminDashboardPage() {
           <p className="text-xs font-mono text-platform-textMuted">Disponibil direct pentru noi fișiere media</p>
         </div>
 
+      </div>
+
+      {/* User Roles Management Section */}
+      <div className="platform-card p-6 space-y-4">
+        <div className="flex items-center justify-between pb-4 border-b border-platform-border">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-xl bg-platform-tertiary border border-platform-border text-platform-green">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold font-display text-white">Gestionare Roluri Utilizatori (vvrobots_media)</h2>
+              <p className="text-xs text-platform-textSecondary">Atribuie sau modifică drepturile de acces ale fiecărui membru din echipă.</p>
+            </div>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-platform-green/10 border border-platform-green/20 text-platform-green text-xs font-mono font-semibold">
+            {users.length} Utilizatori Înregistrați
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-platform-textSecondary">
+            <thead className="bg-platform-tertiary/50 uppercase font-mono text-[11px] text-platform-textMuted">
+              <tr>
+                <th className="p-3 font-semibold">Nume</th>
+                <th className="p-3 font-semibold">Email (Cont VVRobots)</th>
+                <th className="p-3 font-semibold">Rol Curent</th>
+                <th className="p-3 font-semibold">Schimbă Rolul</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-platform-border">
+              {users.map((u) => (
+                <tr key={u.id} className="hover:bg-platform-tertiary/30 transition">
+                  <td className="p-3 font-semibold text-slate-100">{u.name}</td>
+                  <td className="p-3 font-mono text-slate-300">{u.email}</td>
+                  <td className="p-3">
+                    <span
+                      className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full font-mono text-[11px] font-semibold border ${
+                        u.role === 'ADMIN'
+                          ? 'bg-platform-green/10 text-platform-green border-platform-green/30'
+                          : u.role === 'EDITOR'
+                          ? 'bg-platform-blue/10 text-platform-blue border-platform-blue/30'
+                          : 'bg-platform-tertiary text-slate-300 border-platform-border'
+                      }`}
+                    >
+                      <UserCheck className="w-3 h-3" />
+                      <span>{u.role}</span>
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <div className="flex items-center space-x-2">
+                      <select
+                        value={u.role}
+                        disabled={updatingUser === u.id}
+                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                        className="bg-platform-bg border border-platform-border text-xs text-slate-200 rounded-xl px-2.5 py-1.5 outline-none focus:border-platform-green font-mono disabled:opacity-50"
+                      >
+                        <option value="VIEWER">VIEWER (Doar Vizualizare)</option>
+                        <option value="EDITOR">EDITOR (Upload Media)</option>
+                        <option value="ADMIN">ADMIN (Drepturi Depline)</option>
+                      </select>
+                      {updatingUser === u.id && (
+                        <Loader2 className="w-4 h-4 animate-spin text-platform-green" />
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
