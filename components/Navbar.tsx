@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { 
   Film, 
-  Sun, 
-  Moon, 
   LogOut, 
   HardDrive, 
   ShieldCheck, 
@@ -16,29 +14,6 @@ import {
 
 export function Navbar() {
   const { data: session } = useSession();
-  const [darkMode, setDarkMode] = useState<boolean>(true);
-
-  useEffect(() => {
-    const isDark = localStorage.getItem('theme') !== 'light';
-    setDarkMode(isDark);
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const nextDark = !darkMode;
-    setDarkMode(nextDark);
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
 
   const handleSignOut = async () => {
     await signOut({ redirect: false });
@@ -110,15 +85,6 @@ export function Navbar() {
             </>
           )}
 
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 transition border border-platform-border"
-            title="Schimbă tema"
-          >
-            {darkMode ? <Sun className="w-4 h-4 text-platform-green" /> : <Moon className="w-4 h-4 text-platform-blue" />}
-          </button>
-
           {/* User Profile / Logout */}
           {session?.user ? (
             <div className="flex items-center space-x-3 pl-2 border-l border-platform-border">
@@ -149,3 +115,4 @@ export function Navbar() {
     </header>
   );
 }
+
