@@ -37,11 +37,6 @@ export default function LoginPage() {
     }
   };
 
-  const fillCredentials = (userEmail: string, userPass: string) => {
-    setEmail(userEmail);
-    setPassword(userPass);
-  };
-
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
       <div className="w-full max-w-md platform-card p-6 sm:p-8 space-y-6 shadow-2xl">
@@ -55,6 +50,9 @@ export default function LoginPage() {
             VVROBOTS 19116
           </h1>
           <p className="text-xs font-mono text-platform-textSecondary">Platformă Organizare Media Marketing</p>
+          <p className="text-[11px] font-mono text-platform-green bg-platform-green/10 border border-platform-green/20 py-1 px-3 rounded-full inline-block mt-1">
+            Autentificare cu contul echipei VVRobots
+          </p>
         </div>
 
         {/* Error Alert */}
@@ -68,7 +66,7 @@ export default function LoginPage() {
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Email</label>
+            <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Email VVRobots</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-platform-textMuted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -112,36 +110,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        {/* Demo Quick Logins */}
-        <div className="pt-4 border-t border-platform-border space-y-2 font-mono">
-          <p className="text-[11px] text-platform-textMuted text-center font-semibold uppercase tracking-wider">
-            Conturi Demo (Apasă pentru autocompletare):
-          </p>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <button
-              type="button"
-              onClick={() => fillCredentials('admin@vvrobots.ro', 'admin123')}
-              className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-[11px] font-semibold text-platform-green border border-platform-border transition"
-            >
-              ADMIN
-            </button>
-            <button
-              type="button"
-              onClick={() => fillCredentials('editor@vvrobots.ro', 'editor123')}
-              className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-[11px] font-semibold text-platform-blue border border-platform-border transition"
-            >
-              EDITOR
-            </button>
-            <button
-              type="button"
-              onClick={() => fillCredentials('viewer@vvrobots.ro', 'viewer123')}
-              className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-[11px] font-semibold text-platform-green border border-platform-border transition"
-            >
-              VIEWER
-            </button>
-          </div>
-        </div>
 
       </div>
     </div>

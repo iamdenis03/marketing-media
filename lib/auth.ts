@@ -20,72 +20,53 @@ export const authOptions: NextAuthOptions = {
 
         const cleanEmail = credentials.email.toLowerCase().trim();
 
-        // 1. First, check main VVRobots database for user authentication
+        // Query main VVRobots database exclusively for user authentication
         const mainUser = await findMainDbUserByEmail(cleanEmail);
 
-        if (mainUser) {
-          // Verify password against main database hash
-          const isValidPassword = await bcrypt.compare(credentials.password, mainUser.password_hash);
-          if (!isValidPassword) {
-            throw new Error('Parolă incorectă.');
-          }
-
-          // Check or provision local user in marketing-media DB for role management
-          let localUser = await prisma.user.findUnique({
-            where: { email: cleanEmail },
-          });
-
-          if (!localUser) {
-            // Determine initial default role
-            let initialRole: Role = Role.VIEWER;
-            if (
-              cleanEmail.includes('admin') ||
-              cleanEmail.includes('denis') ||
-              mainUser.role === 'admin'
-            ) {
-              initialRole = Role.ADMIN;
-            } else if (mainUser.department === 'Marketing') {
-              initialRole = Role.EDITOR;
-            }
-
-            localUser = await prisma.user.create({
-              data: {
-                name: mainUser.name || mainUser.email.split('@')[0],
-                email: cleanEmail,
-                passwordHash: mainUser.password_hash,
-                role: initialRole,
-              },
-            });
-          } else {
-            // Keep passwordHash in sync if changed on main platform
-            if (localUser.passwordHash !== mainUser.password_hash) {
-              localUser = await prisma.user.update({
-                where: { email: cleanEmail },
-                data: { passwordHash: mainUser.password_hash },
-              });
-            }
-          }
-
-          return {
-            id: localUser.id,
-            name: localUser.name,
-            email: localUser.email,
-            role: localUser.role,
-          };
+        if (!mainUser) {
+          throw new Error('Utilizatorul nu există în baza de date VVRobots.');
         }
 
-        // 2. Fallback check on local marketing-media DB (for standalone accounts)
-        const localUser = await prisma.user.findUnique({
+        // Verify password against main database hash
+        const isValidPassword = await bcrypt.compare(credentials.password, mainUser.password_hash);
+        if (!isValidPassword) {
+          throw new Error('Parolă incorectă.');
+        }
+
+        // Check or provision local user in marketing-media DB for role management
+        let localUser = await prisma.user.findUnique({
           where: { email: cleanEmail },
         });
 
         if (!localUser) {
-          throw new Error('Utilizatorul nu a fost găsit în baza de date VVRobots.');
-        }
+          // Determine initial default role based on main DB role / department / email
+          let initialRole: Role = Role.VIEWER;
+          if (
+            cleanEmail.includes('admin') ||
+            cleanEmail.includes('denis') ||
+            mainUser.role === 'admin'
+          ) {
+            initialRole = Role.ADMIN;
+          } else if (mainUser.department === 'Marketing') {
+            initialRole = Role.EDITOR;
+          }
 
-        const isValidLocalPassword = await bcrypt.compare(credentials.password, localUser.passwordHash);
-        if (!isValidLocalPassword) {
-          throw new Error('Parolă incorectă.');
+          localUser = await prisma.user.create({
+            data: {
+              name: mainUser.name || mainUser.email.split('@')[0],
+              email: cleanEmail,
+              passwordHash: mainUser.password_hash,
+              role: initialRole,
+            },
+          });
+        } else {
+          // Keep passwordHash in sync if changed on main platform
+          if (localUser.passwordHash !== mainUser.password_hash) {
+            localUser = await prisma.user.update({
+              where: { email: cleanEmail },
+              data: { passwordHash: mainUser.password_hash },
+            });
+          }
         }
 
         return {
