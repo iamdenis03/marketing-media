@@ -5,9 +5,9 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { MediaGrid } from '@/components/MediaGrid';
 import { MediaUploadModal } from '@/components/MediaUploadModal';
 import { MediaItem } from '@/components/Lightbox';
-import { Calendar, UploadCloud, Download, Loader2, Images } from 'lucide-react';
+import { Calendar, UploadCloud, Download, Loader2, Images, Trash2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 interface DayDetail {
   id: string;
@@ -26,10 +26,13 @@ interface DayDetail {
 export default function DayGalleryPage() {
   const { dayId } = useParams() as { dayId: string };
   const { data: session } = useSession();
+  const router = useRouter();
 
   const [day, setDay] = useState<DayDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showDeleteDayModal, setShowDeleteDayModal] = useState(false);
+  const [deletingDay, setDeletingDay] = useState(false);
 
   useEffect(() => {
     fetchDayData();
@@ -75,7 +78,30 @@ export default function DayGalleryPage() {
     }
   };
 
+  const handleDeleteDay = async () => {
+    setDeletingDay(true);
+
+    try {
+      const res = await fetch(`/api/days/${dayId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setShowDeleteDayModal(false);
+        router.push(day?.eventId ? `/events/${day.eventId}` : '/');
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la ștergerea zilei.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingDay(false);
+    }
+  };
+
   const role = (session?.user as any)?.role;
+  const canManage = role === 'ADMIN' || role === 'EDITOR';
 
   if (loading) {
     return (
@@ -118,6 +144,18 @@ export default function DayGalleryPage() {
         </div>
 
         <div className="flex items-center space-x-3">
+          {/* Delete Day Button */}
+          {canManage && (
+            <button
+              onClick={() => setShowDeleteDayModal(true)}
+              className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              title="Șterge Ziua Curentă"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Șterge Ziua</span>
+            </button>
+          )}
+
           {/* Download Day ZIP */}
           <a
             href={`/api/download/day/${dayId}`}
@@ -129,7 +167,7 @@ export default function DayGalleryPage() {
           </a>
 
           {/* Upload Button */}
-          {(role === 'ADMIN' || role === 'EDITOR') && (
+          {canManage && (
             <button
               onClick={() => setShowUploadModal(true)}
               className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
@@ -156,6 +194,48 @@ export default function DayGalleryPage() {
         onUploadSuccess={fetchDayData}
       />
 
+      {/* Delete Day Confirmation Modal */}
+      {showDeleteDayModal && day && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-red-500/30 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center space-x-3 text-red-400">
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-lg font-display text-white">Ștergere Zi Curentă</h3>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Ești sigur că vrei să ștergi ziua <strong className="text-white font-semibold">"{dayTitle}"</strong>?
+              <br />
+              <span className="text-red-400 font-mono text-[11px] block mt-2">
+                ⚠️ Toate fișierele media aferente acestei zile vor fi șterse definitiv din baza de date și de pe disc.
+              </span>
+            </p>
+
+            <div className="pt-2 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteDayModal(false)}
+                disabled={deletingDay}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+              >
+                Anulează
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteDay}
+                disabled={deletingDay}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500 text-white flex items-center space-x-1.5 transition shadow"
+              >
+                {deletingDay ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Șterge Definitiv</span>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+

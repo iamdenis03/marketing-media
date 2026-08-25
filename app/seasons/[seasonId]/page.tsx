@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, Sparkles, FolderKanban } from 'lucide-react';
+import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, Sparkles, FolderKanban, Trash2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 interface EventItem {
   id: string;
@@ -26,11 +26,18 @@ interface SeasonDetail {
 export default function SeasonEventsPage() {
   const { seasonId } = useParams() as { seasonId: string };
   const { data: session } = useSession();
+  const router = useRouter();
 
   const [season, setSeason] = useState<SeasonDetail | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Delete states
+  const [eventToDelete, setEventToDelete] = useState<EventItem | null>(null);
+  const [deletingEvent, setDeletingEvent] = useState(false);
+  const [showDeleteSeasonModal, setShowDeleteSeasonModal] = useState(false);
+  const [deletingSeason, setDeletingSeason] = useState(false);
 
   // Form state
   const [name, setName] = useState('');
@@ -101,7 +108,54 @@ export default function SeasonEventsPage() {
     }
   };
 
+  const handleDeleteEvent = async () => {
+    if (!eventToDelete) return;
+    setDeletingEvent(true);
+
+    try {
+      const res = await fetch(`/api/events/${eventToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setEventToDelete(null);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la ștergerea evenimentului.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingEvent(false);
+    }
+  };
+
+  const handleDeleteSeason = async () => {
+    setDeletingSeason(true);
+
+    try {
+      const res = await fetch(`/api/seasons/${seasonId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setShowDeleteSeasonModal(false);
+        router.push('/');
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la ștergerea sezonului.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingSeason(false);
+    }
+  };
+
   const role = (session?.user as any)?.role;
+  const isAdmin = role === 'ADMIN';
+  const canManage = role === 'ADMIN' || role === 'EDITOR';
 
   if (loading) {
     return (
@@ -137,15 +191,28 @@ export default function SeasonEventsPage() {
           )}
         </div>
 
-        {(role === 'ADMIN' || role === 'EDITOR') && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Adaugă Eveniment Nou</span>
-          </button>
-        )}
+        <div className="flex items-center space-x-3">
+          {isAdmin && (
+            <button
+              onClick={() => setShowDeleteSeasonModal(true)}
+              className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              title="Șterge Sezonul Curent"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Șterge Sezon</span>
+            </button>
+          )}
+
+          {canManage && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Adaugă Eveniment Nou</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Events Grid */}
@@ -168,15 +235,28 @@ export default function SeasonEventsPage() {
                     {evt._count?.days || 0} Zile
                   </span>
                   
-                  {/* Download Event ZIP Button */}
-                  <a
-                    href={`/api/download/event/${evt.id}`}
-                    download
-                    className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-green/20 text-slate-300 hover:text-platform-green transition border border-platform-border"
-                    title="Descarcă toate fișierele evenimentului ca ZIP"
-                  >
-                    <Download className="w-4 h-4" />
-                  </a>
+                  <div className="flex items-center space-x-2">
+                    {/* Delete Event Button */}
+                    {canManage && (
+                      <button
+                        onClick={() => setEventToDelete(evt)}
+                        className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition border border-red-500/20"
+                        title="Șterge Eveniment"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {/* Download Event ZIP Button */}
+                    <a
+                      href={`/api/download/event/${evt.id}`}
+                      download
+                      className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-green/20 text-slate-300 hover:text-platform-green transition border border-platform-border"
+                      title="Descarcă toate fișierele evenimentului ca ZIP"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
+                  </div>
                 </div>
 
                 <Link href={`/events/${evt.id}`} className="block group-hover:text-platform-green transition-colors">
@@ -301,6 +381,89 @@ export default function SeasonEventsPage() {
         </div>
       )}
 
+      {/* Delete Event Confirmation Modal */}
+      {eventToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-red-500/30 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center space-x-3 text-red-400">
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-lg font-display text-white">Ștergere Eveniment</h3>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Ești sigur că vrei să ștergi evenimentul <strong className="text-white font-semibold">"{eventToDelete.name}"</strong>?
+              <br />
+              <span className="text-red-400 font-mono text-[11px] block mt-2">
+                ⚠️ Toate zilele și fișierele media aferente acestui eveniment vor fi șterse definitiv din baza de date și de pe disc.
+              </span>
+            </p>
+
+            <div className="pt-2 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setEventToDelete(null)}
+                disabled={deletingEvent}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+              >
+                Anulează
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteEvent}
+                disabled={deletingEvent}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500 text-white flex items-center space-x-1.5 transition shadow"
+              >
+                {deletingEvent ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Șterge Definitiv</span>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Season Confirmation Modal */}
+      {showDeleteSeasonModal && season && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-red-500/30 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center space-x-3 text-red-400">
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-lg font-display text-white">Ștergere Sezon Curent</h3>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Ești sigur că vrei să ștergi sezonul <strong className="text-white font-semibold">"{season.name}"</strong>?
+              <br />
+              <span className="text-red-400 font-mono text-[11px] block mt-2">
+                ⚠️ Toate evenimentele, zilele și fișierele media aferente vor fi șterse definitiv.
+              </span>
+            </p>
+
+            <div className="pt-2 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteSeasonModal(false)}
+                disabled={deletingSeason}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+              >
+                Anulează
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSeason}
+                disabled={deletingSeason}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500 text-white flex items-center space-x-1.5 transition shadow"
+              >
+                {deletingSeason ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Șterge Definitiv</span>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+

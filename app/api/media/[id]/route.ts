@@ -15,8 +15,8 @@ export async function DELETE(
   }
 
   const role = (session.user as any).role as Role;
-  if (role !== Role.ADMIN) {
-    return NextResponse.json({ error: 'Doar un Administrator poate șterge fișiere media.' }, { status: 403 });
+  if (role !== Role.ADMIN && role !== Role.EDITOR) {
+    return NextResponse.json({ error: 'Fără drepturi de ștergere fișiere media.' }, { status: 403 });
   }
 
   try {

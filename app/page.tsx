@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { Calendar, Plus, ChevronRight, Trophy, Folder, Loader2 } from 'lucide-react';
+import { Calendar, Plus, ChevronRight, Trophy, Folder, Loader2, Trash2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -22,6 +22,8 @@ export default function SeasonsPage() {
   const [seasons, setSeasons] = useState<SeasonItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [seasonToDelete, setSeasonToDelete] = useState<SeasonItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [name, setName] = useState('');
@@ -79,7 +81,31 @@ export default function SeasonsPage() {
     }
   };
 
+  const handleDeleteSeason = async () => {
+    if (!seasonToDelete) return;
+    setDeleting(true);
+
+    try {
+      const res = await fetch(`/api/seasons/${seasonToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setSeasonToDelete(null);
+        fetchSeasons();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la ștergerea sezonului.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const role = (session?.user as any)?.role;
+  const isAdmin = role === 'ADMIN';
 
   if (loading) {
     return (
@@ -110,7 +136,7 @@ export default function SeasonsPage() {
           </p>
         </div>
 
-        {role === 'ADMIN' && (
+        {isAdmin && (
           <button
             onClick={() => setShowCreateModal(true)}
             className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
@@ -131,22 +157,41 @@ export default function SeasonsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {seasons.map((season) => (
-            <Link
+            <div
               key={season.id}
-              href={`/seasons/${season.id}`}
-              className="platform-card p-6 flex flex-col justify-between group hover:border-platform-green/60 transition-all duration-300 shadow-md"
+              className="platform-card p-6 flex flex-col justify-between group hover:border-platform-green/60 transition-all duration-300 shadow-md relative"
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="px-3 py-1 rounded-full bg-platform-green/10 border border-platform-green/20 text-platform-green text-xs font-mono font-semibold">
                     {season._count?.events || 0} Evenimente
                   </span>
-                  <ChevronRight className="w-5 h-5 text-platform-textMuted group-hover:text-platform-green group-hover:translate-x-1 transition" />
+
+                  <div className="flex items-center space-x-1">
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSeasonToDelete(season);
+                        }}
+                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition"
+                        title="Șterge Sezon"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <Link href={`/seasons/${season.id}`}>
+                      <ChevronRight className="w-5 h-5 text-platform-textMuted group-hover:text-platform-green group-hover:translate-x-1 transition" />
+                    </Link>
+                  </div>
                 </div>
 
-                <h2 className="text-lg font-bold font-display text-slate-100 group-hover:text-platform-green transition-colors line-clamp-2">
-                  {season.name}
-                </h2>
+                <Link href={`/seasons/${season.id}`} className="block">
+                  <h2 className="text-lg font-bold font-display text-slate-100 group-hover:text-platform-green transition-colors line-clamp-2">
+                    {season.name}
+                  </h2>
+                </Link>
               </div>
 
               <div className="mt-6 pt-4 border-t border-platform-border/80 flex items-center justify-between text-xs text-platform-textSecondary font-mono">
@@ -157,12 +202,12 @@ export default function SeasonsPage() {
                   </span>
                 </span>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Create Season Modal (Admin) */}
+      {/* Create Season Modal (Admin/Editor) */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
@@ -228,6 +273,48 @@ export default function SeasonsPage() {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {seasonToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-red-500/30 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center space-x-3 text-red-400">
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-lg font-display text-white">Ștergere Sezon</h3>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Ești sigur că vrei să ștergi sezonul <strong className="text-white font-semibold">"{seasonToDelete.name}"</strong>?
+              <br />
+              <span className="text-red-400 font-mono text-[11px] block mt-2">
+                ⚠️ Această acțiune va șterge definitiv toate evenimentele, zilele și fișierele media aferente din baza de date și de pe disc.
+              </span>
+            </p>
+
+            <div className="pt-2 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setSeasonToDelete(null)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+              >
+                Anulează
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSeason}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500 text-white flex items-center space-x-1.5 transition shadow"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Șterge Definitiv</span>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
