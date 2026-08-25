@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/prisma';
+import { findMainDbUserByEmail } from '@/lib/mainDb';
 import { Role } from '@prisma/client';
 
 export const authOptions: NextAuthOptions = {
@@ -9,7 +10,7 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email', placeholder: 'admin@vvrobots.ro' },
+        email: { label: 'Email', type: 'email', placeholder: 'nume@vvrobots.ro' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
@@ -17,25 +18,81 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Vă rugăm să introduceți email-ul și parola.');
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase().trim() },
-        });
+        const cleanEmail = credentials.email.toLowerCase().trim();
 
-        if (!user) {
-          throw new Error('Utilizatorul nu a fost găsit.');
+        // 1. First, check main VVRobots database for user authentication
+        const mainUser = await findMainDbUserByEmail(cleanEmail);
+
+        if (mainUser) {
+          // Verify password against main database hash
+          const isValidPassword = await bcrypt.compare(credentials.password, mainUser.password_hash);
+          if (!isValidPassword) {
+            throw new Error('Parolă incorectă.');
+          }
+
+          // Check or provision local user in marketing-media DB for role management
+          let localUser = await prisma.user.findUnique({
+            where: { email: cleanEmail },
+          });
+
+          if (!localUser) {
+            // Determine initial default role
+            let initialRole: Role = Role.VIEWER;
+            if (
+              cleanEmail.includes('admin') ||
+              cleanEmail.includes('denis') ||
+              mainUser.role === 'admin'
+            ) {
+              initialRole = Role.ADMIN;
+            } else if (mainUser.department === 'Marketing') {
+              initialRole = Role.EDITOR;
+            }
+
+            localUser = await prisma.user.create({
+              data: {
+                name: mainUser.name || mainUser.email.split('@')[0],
+                email: cleanEmail,
+                passwordHash: mainUser.password_hash,
+                role: initialRole,
+              },
+            });
+          } else {
+            // Keep passwordHash in sync if changed on main platform
+            if (localUser.passwordHash !== mainUser.password_hash) {
+              localUser = await prisma.user.update({
+                where: { email: cleanEmail },
+                data: { passwordHash: mainUser.password_hash },
+              });
+            }
+          }
+
+          return {
+            id: localUser.id,
+            name: localUser.name,
+            email: localUser.email,
+            role: localUser.role,
+          };
         }
 
-        const isValidPassword = await bcrypt.compare(credentials.password, user.passwordHash);
+        // 2. Fallback check on local marketing-media DB (for standalone accounts)
+        const localUser = await prisma.user.findUnique({
+          where: { email: cleanEmail },
+        });
 
-        if (!isValidPassword) {
+        if (!localUser) {
+          throw new Error('Utilizatorul nu a fost găsit în baza de date VVRobots.');
+        }
+
+        const isValidLocalPassword = await bcrypt.compare(credentials.password, localUser.passwordHash);
+        if (!isValidLocalPassword) {
           throw new Error('Parolă incorectă.');
         }
 
         return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
+          id: localUser.id,
+          name: localUser.name,
+          email: localUser.email,
+          role: localUser.role,
         };
       },
     }),

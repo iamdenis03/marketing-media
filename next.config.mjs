@@ -7,7 +7,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ['archiver', 'sharp', 'bcrypt'],
+    serverComponentsExternalPackages: ['archiver', 'sharp', 'bcrypt', 'mysql2'],
   },
 };
 
