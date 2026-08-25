@@ -40,6 +40,11 @@ export function Navbar() {
     }
   };
 
+  const handleSignOut = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    signOut({ callbackUrl: `${origin}/login` });
+  };
+
   const role = (session?.user as any)?.role;
 
   return (
@@ -120,7 +125,7 @@ export function Navbar() {
                 <span className="text-[10px] font-mono text-platform-textMuted">{session.user.email}</span>
               </div>
               <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
+                onClick={handleSignOut}
                 className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition"
                 title="Deconectare"
               >
