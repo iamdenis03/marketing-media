@@ -40,9 +40,11 @@ export function Navbar() {
     }
   };
 
-  const handleSignOut = () => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    signOut({ callbackUrl: `${origin}/login` });
+  const handleSignOut = async () => {
+    await signOut({ redirect: false });
+    if (typeof window !== 'undefined') {
+      window.location.href = `${window.location.origin}/login`;
+    }
   };
 
   const role = (session?.user as any)?.role;
