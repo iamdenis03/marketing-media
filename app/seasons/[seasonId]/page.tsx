@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, Sparkles, FolderKanban, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, Sparkles, FolderKanban, Trash2, Pencil } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
+import { formatDate, toInputDateFormat } from '@/lib/utils';
 
 interface EventItem {
   id: string;
@@ -33,13 +34,28 @@ export default function SeasonEventsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Edit Season State (ADMIN only)
+  const [showEditSeasonModal, setShowEditSeasonModal] = useState(false);
+  const [editSeasonName, setEditSeasonName] = useState('');
+  const [editSeasonStartDate, setEditSeasonStartDate] = useState('');
+  const [editSeasonEndDate, setEditSeasonEndDate] = useState('');
+  const [updatingSeason, setUpdatingSeason] = useState(false);
+
+  // Edit Event State (ADMIN / EDITOR)
+  const [eventToEdit, setEventToEdit] = useState<EventItem | null>(null);
+  const [editEventName, setEditEventName] = useState('');
+  const [editEventLocation, setEditEventLocation] = useState('');
+  const [editEventStartDate, setEditEventStartDate] = useState('');
+  const [editEventEndDate, setEditEventEndDate] = useState('');
+  const [updatingEvent, setUpdatingEvent] = useState(false);
+
   // Delete states
   const [eventToDelete, setEventToDelete] = useState<EventItem | null>(null);
   const [deletingEvent, setDeletingEvent] = useState(false);
   const [showDeleteSeasonModal, setShowDeleteSeasonModal] = useState(false);
   const [deletingSeason, setDeletingSeason] = useState(false);
 
-  // Form state
+  // Create Form state
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -105,6 +121,83 @@ export default function SeasonEventsPage() {
       console.error(err);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const openEditSeasonModal = () => {
+    if (!season) return;
+    setEditSeasonName(season.name);
+    setEditSeasonStartDate(toInputDateFormat(season.startDate));
+    setEditSeasonEndDate(toInputDateFormat(season.endDate));
+    setShowEditSeasonModal(true);
+  };
+
+  const handleEditSeason = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!season) return;
+    setUpdatingSeason(true);
+
+    try {
+      const res = await fetch(`/api/seasons/${season.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editSeasonName,
+          startDate: editSeasonStartDate,
+          endDate: editSeasonEndDate,
+        }),
+      });
+
+      if (res.ok) {
+        setShowEditSeasonModal(false);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la salvarea modificărilor.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingSeason(false);
+    }
+  };
+
+  const openEditEventModal = (evt: EventItem) => {
+    setEventToEdit(evt);
+    setEditEventName(evt.name);
+    setEditEventLocation(evt.location);
+    setEditEventStartDate(toInputDateFormat(evt.startDate));
+    setEditEventEndDate(toInputDateFormat(evt.endDate));
+  };
+
+  const handleEditEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventToEdit) return;
+    setUpdatingEvent(true);
+
+    try {
+      const res = await fetch(`/api/events/${eventToEdit.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editEventName,
+          location: editEventLocation,
+          startDate: editEventStartDate,
+          endDate: editEventEndDate,
+        }),
+      });
+
+      if (res.ok) {
+        setEventToEdit(null);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la salvarea modificărilor.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingEvent(false);
     }
   };
 
@@ -185,7 +278,7 @@ export default function SeasonEventsPage() {
             <p className="text-xs sm:text-sm text-platform-textSecondary mt-2 flex items-center space-x-2 font-mono">
               <Calendar className="w-3.5 h-3.5 text-platform-green" />
               <span>
-                {new Date(season.startDate).toLocaleDateString('ro-RO')} - {new Date(season.endDate).toLocaleDateString('ro-RO')}
+                {formatDate(season.startDate)} - {formatDate(season.endDate)}
               </span>
             </p>
           )}
@@ -193,14 +286,24 @@ export default function SeasonEventsPage() {
 
         <div className="flex items-center space-x-3">
           {isAdmin && (
-            <button
-              onClick={() => setShowDeleteSeasonModal(true)}
-              className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
-              title="Șterge Sezonul Curent"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Șterge Sezon</span>
-            </button>
+            <>
+              <button
+                onClick={openEditSeasonModal}
+                className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+                title="Editează Sezonul"
+              >
+                <Pencil className="w-4 h-4" />
+                <span className="hidden sm:inline">Editează Sezon</span>
+              </button>
+              <button
+                onClick={() => setShowDeleteSeasonModal(true)}
+                className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+                title="Șterge Sezonul Curent"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Șterge Sezon</span>
+              </button>
+            </>
           )}
 
           {canManage && (
@@ -236,18 +339,25 @@ export default function SeasonEventsPage() {
                   </span>
                   
                   <div className="flex items-center space-x-2">
-                    {/* Delete Event Button */}
                     {canManage && (
-                      <button
-                        onClick={() => setEventToDelete(evt)}
-                        className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition border border-red-500/20"
-                        title="Șterge Eveniment"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => openEditEventModal(evt)}
+                          className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green transition border border-platform-border"
+                          title="Editează / Redenumește Eveniment"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setEventToDelete(evt)}
+                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition border border-red-500/20"
+                          title="Șterge Eveniment"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
 
-                    {/* Download Event ZIP Button */}
                     <a
                       href={`/api/download/event/${evt.id}`}
                       download
@@ -273,7 +383,7 @@ export default function SeasonEventsPage() {
                 <span className="flex items-center space-x-1.5">
                   <Calendar className="w-3.5 h-3.5 text-platform-green" />
                   <span>
-                    {new Date(evt.startDate).toLocaleDateString('ro-RO')} - {new Date(evt.endDate).toLocaleDateString('ro-RO')}
+                    {formatDate(evt.startDate)} - {formatDate(evt.endDate)}
                   </span>
                 </span>
                 
@@ -281,7 +391,7 @@ export default function SeasonEventsPage() {
                   href={`/events/${evt.id}`}
                   className="flex items-center space-x-1 text-xs font-semibold text-platform-green hover:underline"
                 >
-                  <span>Vezi Zilele</span>
+                  <span>Vezi Galerie / Zile</span>
                   <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -381,6 +491,147 @@ export default function SeasonEventsPage() {
         </div>
       )}
 
+      {/* Edit Season Modal (Admin Only) */}
+      {showEditSeasonModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
+              <Pencil className="w-5 h-5 text-platform-green" />
+              <span>Editează Sezon</span>
+            </h3>
+
+            <form onSubmit={handleEditSeason} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Nume Sezon</label>
+                <input
+                  type="text"
+                  required
+                  value={editSeasonName}
+                  onChange={(e) => setEditSeasonName(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Început</label>
+                  <input
+                    type="date"
+                    required
+                    value={editSeasonStartDate}
+                    onChange={(e) => setEditSeasonStartDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Sfârșit</label>
+                  <input
+                    type="date"
+                    required
+                    value={editSeasonEndDate}
+                    onChange={(e) => setEditSeasonEndDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditSeasonModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+                >
+                  Anulează
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingSeason}
+                  className="btn-platform-primary px-4 py-2 text-xs flex items-center space-x-1"
+                >
+                  {updatingSeason ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvează Modificările</span>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event Modal (Admin / Editor) */}
+      {eventToEdit && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
+              <Pencil className="w-5 h-5 text-platform-green" />
+              <span>Editează Eveniment</span>
+            </h3>
+
+            <form onSubmit={handleEditEvent} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Nume Eveniment</label>
+                <input
+                  type="text"
+                  required
+                  value={editEventName}
+                  onChange={(e) => setEditEventName(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Locație</label>
+                <input
+                  type="text"
+                  required
+                  value={editEventLocation}
+                  onChange={(e) => setEditEventLocation(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Început</label>
+                  <input
+                    type="date"
+                    required
+                    value={editEventStartDate}
+                    onChange={(e) => setEditEventStartDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Sfârșit</label>
+                  <input
+                    type="date"
+                    required
+                    value={editEventEndDate}
+                    onChange={(e) => setEditEventEndDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setEventToEdit(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+                >
+                  Anulează
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingEvent}
+                  className="btn-platform-primary px-4 py-2 text-xs flex items-center space-x-1"
+                >
+                  {updatingEvent ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvează Modificările</span>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Delete Event Confirmation Modal */}
       {eventToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -466,4 +717,3 @@ export default function SeasonEventsPage() {
     </div>
   );
 }
-

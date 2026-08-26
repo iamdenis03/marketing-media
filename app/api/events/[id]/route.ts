@@ -57,3 +57,45 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ error: 'Neautorizat.' }, { status: 401 });
+  }
+
+  const role = (session.user as any).role as Role;
+  if (role !== Role.ADMIN && role !== Role.EDITOR) {
+    return NextResponse.json({ error: 'Fără drepturi de modificare eveniment.' }, { status: 403 });
+  }
+
+  try {
+    const eventId = params.id;
+    const body = await req.json();
+    const { name, location, startDate, endDate } = body;
+
+    const dataToUpdate: any = {};
+    if (name && name.trim()) dataToUpdate.name = name.trim();
+    if (location && location.trim()) dataToUpdate.location = location.trim();
+    if (startDate) dataToUpdate.startDate = new Date(startDate);
+    if (endDate) dataToUpdate.endDate = new Date(endDate);
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      return NextResponse.json({ error: 'Niciun câmp de modificat.' }, { status: 400 });
+    }
+
+    const updatedEvent = await prisma.event.update({
+      where: { id: eventId },
+      data: dataToUpdate,
+    });
+
+    return NextResponse.json(updatedEvent);
+  } catch (error: any) {
+    console.error('Error updating event:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+

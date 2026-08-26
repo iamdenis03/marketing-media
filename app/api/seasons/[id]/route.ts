@@ -63,3 +63,44 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ error: 'Neautorizat.' }, { status: 401 });
+  }
+
+  const role = (session.user as any).role as Role;
+  if (role !== Role.ADMIN) {
+    return NextResponse.json({ error: 'Doar administratorii pot modifica sezoane.' }, { status: 403 });
+  }
+
+  try {
+    const seasonId = params.id;
+    const body = await req.json();
+    const { name, startDate, endDate } = body;
+
+    const dataToUpdate: any = {};
+    if (name && name.trim()) dataToUpdate.name = name.trim();
+    if (startDate) dataToUpdate.startDate = new Date(startDate);
+    if (endDate) dataToUpdate.endDate = new Date(endDate);
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      return NextResponse.json({ error: 'Niciun câmp de modificat.' }, { status: 400 });
+    }
+
+    const updatedSeason = await prisma.season.update({
+      where: { id: seasonId },
+      data: dataToUpdate,
+    });
+
+    return NextResponse.json(updatedSeason);
+  } catch (error: any) {
+    console.error('Error updating season:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+

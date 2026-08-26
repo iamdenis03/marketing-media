@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Download, Calendar, User, Tag as TagIcon } from 'lucide-react';
+import { formatDateTime } from '@/lib/utils';
 
 export interface MediaItem {
   id: string;
@@ -143,7 +144,7 @@ export function Lightbox({ asset, assets, onClose, onSelect }: LightboxProps) {
           </span>
           <span className="flex items-center space-x-1.5">
             <Calendar className="w-3.5 h-3.5 text-platform-green" />
-            <span>{new Date(asset.uploadedAt).toLocaleDateString('ro-RO')}</span>
+            <span>{formatDateTime(asset.uploadedAt)}</span>
           </span>
           <span>{formatBytes(asset.fileSize)}</span>
         </div>

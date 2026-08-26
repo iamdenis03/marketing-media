@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { Calendar, Plus, ChevronRight, Trophy, Folder, Loader2, Trash2 } from 'lucide-react';
+import { Calendar, Plus, ChevronRight, Trophy, Folder, Loader2, Trash2, Pencil } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { formatDate, toInputDateFormat } from '@/lib/utils';
 
 interface SeasonItem {
   id: string;
@@ -25,7 +26,14 @@ export default function SeasonsPage() {
   const [seasonToDelete, setSeasonToDelete] = useState<SeasonItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Form state
+  // Edit Season State
+  const [seasonToEdit, setSeasonToEdit] = useState<SeasonItem | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [updating, setUpdating] = useState(false);
+
+  // Create Form state
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -78,6 +86,43 @@ export default function SeasonsPage() {
       console.error(err);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const openEditModal = (season: SeasonItem) => {
+    setSeasonToEdit(season);
+    setEditName(season.name);
+    setEditStartDate(toInputDateFormat(season.startDate));
+    setEditEndDate(toInputDateFormat(season.endDate));
+  };
+
+  const handleEditSeason = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!seasonToEdit) return;
+    setUpdating(true);
+
+    try {
+      const res = await fetch(`/api/seasons/${seasonToEdit.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName,
+          startDate: editStartDate,
+          endDate: editEndDate,
+        }),
+      });
+
+      if (res.ok) {
+        setSeasonToEdit(null);
+        fetchSeasons();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la salvarea modificărilor.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -169,17 +214,30 @@ export default function SeasonsPage() {
 
                   <div className="flex items-center space-x-1">
                     {isAdmin && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setSeasonToDelete(season);
-                        }}
-                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition"
-                        title="Șterge Sezon"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openEditModal(season);
+                          }}
+                          className="p-1.5 rounded-lg bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border transition"
+                          title="Editează / Redenumește Sezon"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSeasonToDelete(season);
+                          }}
+                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition"
+                          title="Șterge Sezon"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
                     <Link href={`/seasons/${season.id}`}>
                       <ChevronRight className="w-5 h-5 text-platform-textMuted group-hover:text-platform-green group-hover:translate-x-1 transition" />
@@ -198,7 +256,7 @@ export default function SeasonsPage() {
                 <span className="flex items-center space-x-2">
                   <Calendar className="w-3.5 h-3.5 text-platform-green" />
                   <span>
-                    {new Date(season.startDate).toLocaleDateString('ro-RO')} - {new Date(season.endDate).toLocaleDateString('ro-RO')}
+                    {formatDate(season.startDate)} - {formatDate(season.endDate)}
                   </span>
                 </span>
               </div>
@@ -207,7 +265,7 @@ export default function SeasonsPage() {
         </div>
       )}
 
-      {/* Create Season Modal (Admin/Editor) */}
+      {/* Create Season Modal (Admin) */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
@@ -273,6 +331,71 @@ export default function SeasonsPage() {
         </div>
       )}
 
+      {/* Edit Season Modal (Admin Only) */}
+      {seasonToEdit && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
+              <Pencil className="w-5 h-5 text-platform-green" />
+              <span>Editează Sezon</span>
+            </h3>
+
+            <form onSubmit={handleEditSeason} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Nume Sezon</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Început</label>
+                  <input
+                    type="date"
+                    required
+                    value={editStartDate}
+                    onChange={(e) => setEditStartDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Sfârșit</label>
+                  <input
+                    type="date"
+                    required
+                    value={editEndDate}
+                    onChange={(e) => setEditEndDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setSeasonToEdit(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+                >
+                  Anulează
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="btn-platform-primary px-4 py-2 text-xs flex items-center space-x-1"
+                >
+                  {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvează Modificările</span>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {seasonToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -317,4 +440,3 @@ export default function SeasonsPage() {
     </div>
   );
 }
-

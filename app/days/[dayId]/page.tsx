@@ -5,9 +5,10 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { MediaGrid } from '@/components/MediaGrid';
 import { MediaUploadModal } from '@/components/MediaUploadModal';
 import { MediaItem } from '@/components/Lightbox';
-import { Calendar, UploadCloud, Download, Loader2, Images, Trash2 } from 'lucide-react';
+import { Calendar, UploadCloud, Download, Loader2, Images, Trash2, Pencil } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
+import { formatDate, toInputDateFormat } from '@/lib/utils';
 
 interface DayDetail {
   id: string;
@@ -34,6 +35,12 @@ export default function DayGalleryPage() {
   const [showDeleteDayModal, setShowDeleteDayModal] = useState(false);
   const [deletingDay, setDeletingDay] = useState(false);
 
+  // Edit Day State
+  const [showEditDayModal, setShowEditDayModal] = useState(false);
+  const [editDayLabel, setEditDayLabel] = useState('');
+  const [editDayDate, setEditDayDate] = useState('');
+  const [updatingDay, setUpdatingDay] = useState(false);
+
   useEffect(() => {
     fetchDayData();
   }, [dayId]);
@@ -58,6 +65,42 @@ export default function DayGalleryPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openEditDayModal = () => {
+    if (!day) return;
+    setEditDayLabel(day.label || '');
+    setEditDayDate(toInputDateFormat(day.date));
+    setShowEditDayModal(true);
+  };
+
+  const handleEditDay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!day) return;
+    setUpdatingDay(true);
+
+    try {
+      const res = await fetch(`/api/days/${day.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: editDayLabel,
+          date: editDayDate,
+        }),
+      });
+
+      if (res.ok) {
+        setShowEditDayModal(false);
+        fetchDayData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la salvarea modificărilor.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingDay(false);
     }
   };
 
@@ -112,7 +155,7 @@ export default function DayGalleryPage() {
     );
   }
 
-  const dayTitle = day?.label || (day?.date ? `Ziua - ${new Date(day.date).toLocaleDateString('ro-RO')}` : 'Zi Media');
+  const dayTitle = day?.label || (day?.date ? `Ziua - ${formatDate(day.date)}` : 'Zi Media');
 
   return (
     <div className="space-y-6">
@@ -138,12 +181,24 @@ export default function DayGalleryPage() {
           {day?.date && (
             <p className="text-xs sm:text-sm text-platform-textSecondary font-mono flex items-center space-x-2 mt-1">
               <Calendar className="w-3.5 h-3.5 text-platform-green" />
-              <span>Data: {new Date(day.date).toLocaleDateString('ro-RO')}</span>
+              <span>Data: {formatDate(day.date)}</span>
             </p>
           )}
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Edit Day Button */}
+          {canManage && (
+            <button
+              onClick={openEditDayModal}
+              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              title="Editează Ziua"
+            >
+              <Pencil className="w-4 h-4" />
+              <span className="hidden sm:inline">Editează Zi</span>
+            </button>
+          )}
+
           {/* Delete Day Button */}
           {canManage && (
             <button
@@ -194,6 +249,59 @@ export default function DayGalleryPage() {
         onUploadSuccess={fetchDayData}
       />
 
+      {/* Edit Day Modal (Admin / Editor) */}
+      {showEditDayModal && day && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
+              <Pencil className="w-5 h-5 text-platform-green" />
+              <span>Editează Zi</span>
+            </h3>
+
+            <form onSubmit={handleEditDay} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Dată</label>
+                <input
+                  type="date"
+                  required
+                  value={editDayDate}
+                  onChange={(e) => setEditDayDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Etichetă Zi (Opțional)</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Ziua 1 - Inspecție"
+                  value={editDayLabel}
+                  onChange={(e) => setEditDayLabel(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditDayModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+                >
+                  Anulează
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingDay}
+                  className="btn-platform-primary px-4 py-2 text-xs flex items-center space-x-1"
+                >
+                  {updatingDay ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvează Modificările</span>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Delete Day Confirmation Modal */}
       {showDeleteDayModal && day && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -238,4 +346,3 @@ export default function DayGalleryPage() {
     </div>
   );
 }
-

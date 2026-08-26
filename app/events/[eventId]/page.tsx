@@ -3,9 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, CalendarDays, Images, Trash2 } from 'lucide-react';
+import { MediaGrid } from '@/components/MediaGrid';
+import { MediaUploadModal } from '@/components/MediaUploadModal';
+import { MediaItem } from '@/components/Lightbox';
+import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, CalendarDays, Images, Trash2, Pencil, UploadCloud } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
+import { formatDate, toInputDateFormat } from '@/lib/utils';
 
 interface DayItem {
   id: string;
@@ -31,8 +35,32 @@ export default function EventDaysPage() {
 
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [days, setDays] = useState<DayItem[]>([]);
+  const [mediaAssets, setMediaAssets] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Tabs / View mode
+  const [viewMode, setViewMode] = useState<'days' | 'gallery'>('days');
+
+  // Upload modal state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [targetUploadDayId, setTargetUploadDayId] = useState<string>('');
+
+  // Modals
+  const [showCreateDayModal, setShowCreateDayModal] = useState(false);
+
+  // Edit Event State
+  const [showEditEventModal, setShowEditEventModal] = useState(false);
+  const [editEventName, setEditEventName] = useState('');
+  const [editEventLocation, setEditEventLocation] = useState('');
+  const [editEventStartDate, setEditEventStartDate] = useState('');
+  const [editEventEndDate, setEditEventEndDate] = useState('');
+  const [updatingEvent, setUpdatingEvent] = useState(false);
+
+  // Edit Day State
+  const [dayToEdit, setDayToEdit] = useState<DayItem | null>(null);
+  const [editDayLabel, setEditDayLabel] = useState('');
+  const [editDayDate, setEditDayDate] = useState('');
+  const [updatingDay, setUpdatingDay] = useState(false);
 
   // Delete states
   const [dayToDelete, setDayToDelete] = useState<DayItem | null>(null);
@@ -40,10 +68,10 @@ export default function EventDaysPage() {
   const [showDeleteEventModal, setShowDeleteEventModal] = useState(false);
   const [deletingEvent, setDeletingEvent] = useState(false);
 
-  // Form state
-  const [date, setDate] = useState('');
-  const [label, setLabel] = useState('');
-  const [creating, setCreating] = useState(false);
+  // Create Day Form state
+  const [newDate, setNewDate] = useState('');
+  const [newLabel, setNewLabel] = useState('');
+  const [creatingDay, setCreatingDay] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -52,16 +80,41 @@ export default function EventDaysPage() {
   const fetchData = async () => {
     try {
       const eRes = await fetch(`/api/events`);
+      let currentEvent: EventDetail | null = null;
       if (eRes.ok) {
         const events = await eRes.json();
         const found = events.find((e: EventDetail) => e.id === eventId);
-        if (found) setEvent(found);
+        if (found) {
+          setEvent(found);
+          currentEvent = found;
+        }
       }
 
       const dRes = await fetch(`/api/days?eventId=${eventId}`);
+      let currentDays: DayItem[] = [];
       if (dRes.ok) {
-        const dData = await dRes.json();
-        setDays(dData);
+        currentDays = await dRes.json();
+        setDays(currentDays);
+      }
+
+      // Fetch all media assets across days for direct event gallery view
+      if (currentDays.length > 0) {
+        const allMedia: MediaItem[] = [];
+        for (const dayItem of currentDays) {
+          const detailedRes = await fetch(`/api/days/detail?dayId=${dayItem.id}`);
+          if (detailedRes.ok) {
+            const data = await detailedRes.json();
+            if (Array.isArray(data.mediaAssets)) {
+              allMedia.push(...data.mediaAssets);
+            }
+          }
+        }
+        setMediaAssets(allMedia);
+      }
+
+      // If single day event, switch view mode to gallery by default
+      if (currentDays.length === 1) {
+        setViewMode('gallery');
       }
     } catch (err) {
       console.error(err);
@@ -72,7 +125,7 @@ export default function EventDaysPage() {
 
   const handleCreateDay = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCreating(true);
+    setCreatingDay(true);
 
     try {
       const res = await fetch('/api/days', {
@@ -80,15 +133,15 @@ export default function EventDaysPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventId,
-          date,
-          label,
+          date: newDate,
+          label: newLabel,
         }),
       });
 
       if (res.ok) {
-        setDate('');
-        setLabel('');
-        setShowCreateModal(false);
+        setNewDate('');
+        setNewLabel('');
+        setShowCreateDayModal(false);
         fetchData();
       } else {
         const err = await res.json();
@@ -97,7 +150,131 @@ export default function EventDaysPage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setCreating(false);
+      setCreatingDay(false);
+    }
+  };
+
+  const openEditEventModal = () => {
+    if (!event) return;
+    setEditEventName(event.name);
+    setEditEventLocation(event.location);
+    setEditEventStartDate(toInputDateFormat(event.startDate));
+    setEditEventEndDate(toInputDateFormat(event.endDate));
+    setShowEditEventModal(true);
+  };
+
+  const handleEditEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!event) return;
+    setUpdatingEvent(true);
+
+    try {
+      const res = await fetch(`/api/events/${event.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editEventName,
+          location: editEventLocation,
+          startDate: editEventStartDate,
+          endDate: editEventEndDate,
+        }),
+      });
+
+      if (res.ok) {
+        setShowEditEventModal(false);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la salvarea modificărilor.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingEvent(false);
+    }
+  };
+
+  const openEditDayModal = (day: DayItem) => {
+    setDayToEdit(day);
+    setEditDayLabel(day.label || '');
+    setEditDayDate(toInputDateFormat(day.date));
+  };
+
+  const handleEditDay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dayToEdit) return;
+    setUpdatingDay(true);
+
+    try {
+      const res = await fetch(`/api/days/${dayToEdit.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: editDayLabel,
+          date: editDayDate,
+        }),
+      });
+
+      if (res.ok) {
+        setDayToEdit(null);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la salvarea modificărilor.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingDay(false);
+    }
+  };
+
+  const handleOpenDirectUpload = async () => {
+    let dayIdToUse = days[0]?.id;
+
+    // If no days exist yet, auto-create 1 day for event start date
+    if (!dayIdToUse && event) {
+      try {
+        const res = await fetch('/api/days', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId,
+            date: event.startDate,
+            label: 'Eveniment',
+          }),
+        });
+
+        if (res.ok) {
+          const createdDay = await res.json();
+          dayIdToUse = createdDay.id;
+          fetchData();
+        }
+      } catch (err) {
+        console.error('Error auto-creating day for upload:', err);
+      }
+    }
+
+    if (dayIdToUse) {
+      setTargetUploadDayId(dayIdToUse);
+      setShowUploadModal(true);
+    }
+  };
+
+  const handleDeleteAsset = async (assetId: string) => {
+    try {
+      const res = await fetch(`/api/media/${assetId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la ștergere.');
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -153,7 +330,7 @@ export default function EventDaysPage() {
     return (
       <div className="flex items-center justify-center py-24 text-platform-textSecondary space-x-2">
         <Loader2 className="w-6 h-6 animate-spin text-platform-green" />
-        <span className="font-mono text-sm">Se încarcă zilele...</span>
+        <span className="font-mono text-sm">Se încarcă evenimentul...</span>
       </div>
     );
   }
@@ -172,8 +349,10 @@ export default function EventDaysPage() {
       {/* Event Header Banner */}
       <div className="platform-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-xl sm:text-2xl font-bold font-display text-white">{event?.name}</h1>
-          <div className="flex flex-wrap items-center gap-4 text-xs text-platform-textSecondary font-mono">
+          <div className="flex items-center space-x-3">
+            <h1 className="text-xl sm:text-2xl font-bold font-display text-white">{event?.name}</h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 text-xs text-platform-textSecondary font-mono pt-1">
             <span className="flex items-center space-x-1.5">
               <MapPin className="w-3.5 h-3.5 text-platform-blue" />
               <span>{event?.location}</span>
@@ -182,14 +361,26 @@ export default function EventDaysPage() {
               <span className="flex items-center space-x-1.5">
                 <Calendar className="w-3.5 h-3.5 text-platform-green" />
                 <span>
-                  {new Date(event.startDate).toLocaleDateString('ro-RO')} - {new Date(event.endDate).toLocaleDateString('ro-RO')}
+                  {formatDate(event.startDate)} - {formatDate(event.endDate)}
                 </span>
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Edit Event Button */}
+          {canManage && (
+            <button
+              onClick={openEditEventModal}
+              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              title="Editează Eveniment"
+            >
+              <Pencil className="w-4 h-4" />
+              <span className="hidden sm:inline">Editează</span>
+            </button>
+          )}
+
           {/* Delete Event Button */}
           {canManage && (
             <button
@@ -198,7 +389,7 @@ export default function EventDaysPage() {
               title="Șterge Evenimentul Curent"
             >
               <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Șterge Eveniment</span>
+              <span className="hidden sm:inline">Șterge</span>
             </button>
           )}
 
@@ -206,89 +397,179 @@ export default function EventDaysPage() {
           <a
             href={`/api/download/event/${eventId}`}
             download
-            className="px-4 py-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-2 shrink-0 font-mono"
+            className="px-3.5 py-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-2 shrink-0 font-mono"
+            title="Descarcă toate fișierele ca ZIP"
           >
             <Download className="w-4 h-4" />
-            <span>ZIP Tot Evenimentul</span>
+            <span>ZIP Eveniment</span>
           </a>
 
+          {/* Direct Upload Button */}
           {canManage && (
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={handleOpenDirectUpload}
               className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
             >
-              <Plus className="w-4 h-4" />
-              <span>Adaugă Zi Nouă</span>
+              <UploadCloud className="w-4 h-4" />
+              <span>Încarcă Poze/Video</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Days Grid */}
-      {days.length === 0 ? (
-        <div className="platform-card text-center py-16">
-          <CalendarDays className="w-12 h-12 text-platform-textMuted mx-auto mb-3" />
-          <h3 className="text-slate-200 font-semibold text-sm">Nu sunt zile adăugate pentru acest eveniment</h3>
-          <p className="text-xs text-platform-textSecondary mt-1">Adaugă o zi pentru a putea încărca fișiere media.</p>
+      {/* Tab Navigation / View Modes */}
+      <div className="flex items-center justify-between border-b border-platform-border pb-3">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setViewMode('gallery')}
+            className={`px-4 py-2 rounded-xl text-xs font-mono font-semibold transition flex items-center space-x-2 ${
+              viewMode === 'gallery'
+                ? 'bg-platform-green/20 text-platform-green border border-platform-green/40'
+                : 'bg-platform-card text-platform-textSecondary border border-platform-border hover:text-white'
+            }`}
+          >
+            <Images className="w-4 h-4" />
+            <span>Galeriă Directă ({mediaAssets.length})</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('days')}
+            className={`px-4 py-2 rounded-xl text-xs font-mono font-semibold transition flex items-center space-x-2 ${
+              viewMode === 'days'
+                ? 'bg-platform-green/20 text-platform-green border border-platform-green/40'
+                : 'bg-platform-card text-platform-textSecondary border border-platform-border hover:text-white'
+            }`}
+          >
+            <CalendarDays className="w-4 h-4" />
+            <span>Zile Eveniment ({days.length})</span>
+          </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {days.map((day) => (
-            <div
-              key={day.id}
-              className="platform-card p-6 flex flex-col justify-between group hover:border-platform-green/60 transition-all duration-300 shadow-md relative"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="px-3 py-1 rounded-full bg-platform-green/10 border border-platform-green/20 text-platform-green text-xs font-mono font-semibold flex items-center space-x-1.5">
-                    <Images className="w-3.5 h-3.5" />
-                    <span>{day._count?.mediaAssets || 0} Fișiere Media</span>
-                  </span>
 
-                  <div className="flex items-center space-x-1">
-                    {canManage && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setDayToDelete(day);
-                        }}
-                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition"
-                        title="Șterge Zi"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    <Link href={`/days/${day.id}`}>
-                      <ChevronRight className="w-5 h-5 text-platform-textMuted group-hover:text-platform-green group-hover:translate-x-1 transition" />
-                    </Link>
-                  </div>
-                </div>
+        {canManage && viewMode === 'days' && (
+          <button
+            onClick={() => setShowCreateDayModal(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1 font-mono"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Adaugă Zi</span>
+          </button>
+        )}
+      </div>
 
-                <Link href={`/days/${day.id}`} className="block">
-                  <h2 className="text-lg font-bold font-display text-white group-hover:text-platform-green transition-colors">
-                    {day.label || `Ziua - ${new Date(day.date).toLocaleDateString('ro-RO')}`}
-                  </h2>
-                </Link>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-platform-border/80 flex items-center justify-between text-xs text-platform-textSecondary font-mono">
-                <span className="flex items-center space-x-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-platform-green" />
-                  <span>{new Date(day.date).toLocaleDateString('ro-RO')}</span>
-                </span>
-                
-                <Link href={`/days/${day.id}`} className="text-xs font-semibold text-platform-green group-hover:underline">
-                  Deschide Galeria →
-                </Link>
-              </div>
-            </div>
-          ))}
+      {/* VIEW MODE: GALLERY */}
+      {viewMode === 'gallery' && (
+        <div className="space-y-4">
+          <MediaGrid
+            assets={mediaAssets}
+            onDeleteAsset={handleDeleteAsset}
+            userRole={role}
+          />
         </div>
       )}
 
+      {/* VIEW MODE: DAYS GRID */}
+      {viewMode === 'days' && (
+        <>
+          {days.length === 0 ? (
+            <div className="platform-card text-center py-16 space-y-3">
+              <CalendarDays className="w-12 h-12 text-platform-textMuted mx-auto" />
+              <h3 className="text-slate-200 font-semibold text-sm">Nu sunt zile separate configurate</h3>
+              <p className="text-xs text-platform-textSecondary">
+                Poți adăuga o zi sau poți încărca poze direct pe eveniment folosind butonul din antet.
+              </p>
+              {canManage && (
+                <button
+                  onClick={handleOpenDirectUpload}
+                  className="btn-platform-primary px-4 py-2 text-xs inline-flex items-center space-x-2 shadow mt-2"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>Încarcă Poze Direct</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {days.map((day) => (
+                <div
+                  key={day.id}
+                  className="platform-card p-6 flex flex-col justify-between group hover:border-platform-green/60 transition-all duration-300 shadow-md relative"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="px-3 py-1 rounded-full bg-platform-green/10 border border-platform-green/20 text-platform-green text-xs font-mono font-semibold flex items-center space-x-1.5">
+                        <Images className="w-3.5 h-3.5" />
+                        <span>{day._count?.mediaAssets || 0} Fișiere Media</span>
+                      </span>
+
+                      <div className="flex items-center space-x-1">
+                        {canManage && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openEditDayModal(day);
+                              }}
+                              className="p-1.5 rounded-lg bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border transition"
+                              title="Editează Zi"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDayToDelete(day);
+                              }}
+                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition"
+                              title="Șterge Zi"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        <Link href={`/days/${day.id}`}>
+                          <ChevronRight className="w-5 h-5 text-platform-textMuted group-hover:text-platform-green group-hover:translate-x-1 transition" />
+                        </Link>
+                      </div>
+                    </div>
+
+                    <Link href={`/days/${day.id}`} className="block">
+                      <h2 className="text-lg font-bold font-display text-white group-hover:text-platform-green transition-colors">
+                        {day.label || `Ziua - ${formatDate(day.date)}`}
+                      </h2>
+                    </Link>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-platform-border/80 flex items-center justify-between text-xs text-platform-textSecondary font-mono">
+                    <span className="flex items-center space-x-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-platform-green" />
+                      <span>{formatDate(day.date)}</span>
+                    </span>
+                    
+                    <Link href={`/days/${day.id}`} className="text-xs font-semibold text-platform-green group-hover:underline">
+                      Deschide Galeria →
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Direct Upload Modal */}
+      {showUploadModal && targetUploadDayId && (
+        <MediaUploadModal
+          dayId={targetUploadDayId}
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onUploadSuccess={fetchData}
+        />
+      )}
+
       {/* Create Day Modal */}
-      {showCreateModal && (
+      {showCreateDayModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
@@ -302,8 +583,8 @@ export default function EventDaysPage() {
                 <input
                   type="date"
                   required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
                   className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
                 />
               </div>
@@ -313,8 +594,8 @@ export default function EventDaysPage() {
                 <input
                   type="text"
                   placeholder="Ex: Ziua 1 - Inspecție & Pits"
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
                   className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
                 />
               </div>
@@ -322,17 +603,146 @@ export default function EventDaysPage() {
               <div className="pt-2 flex items-center justify-end space-x-3">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => setShowCreateDayModal(false)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
                 >
                   Anulează
                 </button>
                 <button
                   type="submit"
-                  disabled={creating}
+                  disabled={creatingDay}
                   className="btn-platform-primary px-4 py-2 text-xs flex items-center space-x-1"
                 >
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvează</span>}
+                  {creatingDay ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvează</span>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event Modal (Admin / Editor) */}
+      {showEditEventModal && event && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
+              <Pencil className="w-5 h-5 text-platform-green" />
+              <span>Editează Eveniment</span>
+            </h3>
+
+            <form onSubmit={handleEditEvent} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Nume Eveniment</label>
+                <input
+                  type="text"
+                  required
+                  value={editEventName}
+                  onChange={(e) => setEditEventName(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Locație</label>
+                <input
+                  type="text"
+                  required
+                  value={editEventLocation}
+                  onChange={(e) => setEditEventLocation(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Început</label>
+                  <input
+                    type="date"
+                    required
+                    value={editEventStartDate}
+                    onChange={(e) => setEditEventStartDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Data Sfârșit</label>
+                  <input
+                    type="date"
+                    required
+                    value={editEventEndDate}
+                    onChange={(e) => setEditEventEndDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditEventModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+                >
+                  Anulează
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingEvent}
+                  className="btn-platform-primary px-4 py-2 text-xs flex items-center space-x-1"
+                >
+                  {updatingEvent ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvează Modificările</span>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Day Modal (Admin / Editor) */}
+      {dayToEdit && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-platform-card border border-platform-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <h3 className="font-bold text-lg font-display text-white flex items-center space-x-2">
+              <Pencil className="w-5 h-5 text-platform-green" />
+              <span>Editează Zi</span>
+            </h3>
+
+            <form onSubmit={handleEditDay} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Dată</label>
+                <input
+                  type="date"
+                  required
+                  value={editDayDate}
+                  onChange={(e) => setEditDayDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-platform-textSecondary font-mono">Etichetă Zi (Opțional)</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Ziua 1 - Inspecție"
+                  value={editDayLabel}
+                  onChange={(e) => setEditDayLabel(e.target.value)}
+                  className="w-full px-3 py-2 bg-platform-bg border border-platform-border rounded-xl text-xs text-white focus:outline-none focus:border-platform-green"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setDayToEdit(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+                >
+                  Anulează
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingDay}
+                  className="btn-platform-primary px-4 py-2 text-xs flex items-center space-x-1"
+                >
+                  {updatingDay ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvează Modificările</span>}
                 </button>
               </div>
             </form>
@@ -352,7 +762,7 @@ export default function EventDaysPage() {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              Ești sigur că vrei să ștergi ziua <strong className="text-white font-semibold">"{dayToDelete.label || new Date(dayToDelete.date).toLocaleDateString('ro-RO')}"</strong>?
+              Ești sigur că vrei să ștergi ziua <strong className="text-white font-semibold">"{dayToDelete.label || formatDate(dayToDelete.date)}"</strong>?
               <br />
               <span className="text-red-400 font-mono text-[11px] block mt-2">
                 ⚠️ Toate fișierele media aferente acestei zile vor fi șterse definitiv din baza de date și de pe disc.
@@ -425,4 +835,3 @@ export default function EventDaysPage() {
     </div>
   );
 }
-
