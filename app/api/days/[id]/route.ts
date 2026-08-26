@@ -69,11 +69,12 @@ export async function PATCH(
   try {
     const dayId = params.id;
     const body = await req.json();
-    const { label, date } = body;
+    const { label, date, targetEventId, eventId } = body;
 
     const dataToUpdate: any = {};
     if (label !== undefined) dataToUpdate.label = label ? label.trim() : null;
     if (date) dataToUpdate.date = new Date(date);
+    if (targetEventId || eventId) dataToUpdate.eventId = targetEventId || eventId;
 
     if (Object.keys(dataToUpdate).length === 0) {
       return NextResponse.json({ error: 'Niciun câmp de modificat.' }, { status: 400 });

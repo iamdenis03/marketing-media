@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { MediaGrid } from '@/components/MediaGrid';
 import { MediaUploadModal } from '@/components/MediaUploadModal';
+import { MoveTargetModal } from '@/components/MoveTargetModal';
 import { MediaItem } from '@/components/Lightbox';
-import { Calendar, UploadCloud, Download, Loader2, Images, Trash2, Pencil } from 'lucide-react';
+import { Calendar, UploadCloud, Download, Loader2, Images, Trash2, Pencil, ExternalLink } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import { formatDate, toInputDateFormat } from '@/lib/utils';
@@ -31,9 +32,12 @@ export default function DayGalleryPage() {
 
   const [day, setDay] = useState<DayDetail | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Modals
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDeleteDayModal, setShowDeleteDayModal] = useState(false);
   const [deletingDay, setDeletingDay] = useState(false);
+  const [showMoveDayModal, setShowMoveDayModal] = useState(false);
 
   // Edit Day State
   const [showEditDayModal, setShowEditDayModal] = useState(false);
@@ -65,6 +69,30 @@ export default function DayGalleryPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMoveDayConfirm = async (target: { eventId?: string }) => {
+    if (!day || !target.eventId) return;
+
+    try {
+      const res = await fetch(`/api/days/${day.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetEventId: target.eventId,
+        }),
+      });
+
+      if (res.ok) {
+        setShowMoveDayModal(false);
+        router.push(`/events/${target.eventId}`);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la mutarea zilei.');
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -187,6 +215,18 @@ export default function DayGalleryPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Move Day Button */}
+          {canManage && (
+            <button
+              onClick={() => setShowMoveDayModal(true)}
+              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              title="Mută Ziua în alt Eveniment"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span className="hidden sm:inline">Mută Zi</span>
+            </button>
+          )}
+
           {/* Edit Day Button */}
           {canManage && (
             <button
@@ -195,7 +235,7 @@ export default function DayGalleryPage() {
               title="Editează Ziua"
             >
               <Pencil className="w-4 h-4" />
-              <span className="hidden sm:inline">Editează Zi</span>
+              <span className="hidden sm:inline">Editează</span>
             </button>
           )}
 
@@ -238,8 +278,22 @@ export default function DayGalleryPage() {
       <MediaGrid
         assets={day?.mediaAssets || []}
         onDeleteAsset={handleDeleteAsset}
+        onRefreshNeeded={fetchDayData}
         userRole={role}
       />
+
+      {/* Move Day Modal */}
+      {showMoveDayModal && day && (
+        <MoveTargetModal
+          isOpen={showMoveDayModal}
+          mode="day"
+          itemTitle={dayTitle}
+          currentSeasonId={day.event?.seasonId}
+          currentEventId={day.eventId}
+          onClose={() => setShowMoveDayModal(false)}
+          onConfirm={handleMoveDayConfirm}
+        />
+      )}
 
       {/* Upload Modal */}
       <MediaUploadModal

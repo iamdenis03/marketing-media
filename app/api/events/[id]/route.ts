@@ -75,13 +75,14 @@ export async function PATCH(
   try {
     const eventId = params.id;
     const body = await req.json();
-    const { name, location, startDate, endDate } = body;
+    const { name, location, startDate, endDate, targetSeasonId, seasonId } = body;
 
     const dataToUpdate: any = {};
     if (name && name.trim()) dataToUpdate.name = name.trim();
     if (location && location.trim()) dataToUpdate.location = location.trim();
     if (startDate) dataToUpdate.startDate = new Date(startDate);
     if (endDate) dataToUpdate.endDate = new Date(endDate);
+    if (targetSeasonId || seasonId) dataToUpdate.seasonId = targetSeasonId || seasonId;
 
     if (Object.keys(dataToUpdate).length === 0) {
       return NextResponse.json({ error: 'Niciun câmp de modificat.' }, { status: 400 });

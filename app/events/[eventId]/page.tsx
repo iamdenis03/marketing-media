@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { MediaGrid } from '@/components/MediaGrid';
 import { MediaUploadModal } from '@/components/MediaUploadModal';
+import { MoveTargetModal } from '@/components/MoveTargetModal';
 import { MediaItem } from '@/components/Lightbox';
-import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, CalendarDays, Images, Trash2, Pencil, UploadCloud } from 'lucide-react';
+import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, CalendarDays, Images, Trash2, Pencil, UploadCloud, ExternalLink } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import { formatDate, toInputDateFormat } from '@/lib/utils';
@@ -45,7 +46,11 @@ export default function EventDaysPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [targetUploadDayId, setTargetUploadDayId] = useState<string>('');
 
-  // Modals
+  // Move States
+  const [showMoveEventModal, setShowMoveEventModal] = useState(false);
+  const [dayToMove, setDayToMove] = useState<DayItem | null>(null);
+
+  // Create Day Modal
   const [showCreateDayModal, setShowCreateDayModal] = useState(false);
 
   // Edit Event State
@@ -154,6 +159,54 @@ export default function EventDaysPage() {
     }
   };
 
+  const handleMoveEventConfirm = async (target: { seasonId?: string }) => {
+    if (!event || !target.seasonId) return;
+
+    try {
+      const res = await fetch(`/api/events/${event.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetSeasonId: target.seasonId,
+        }),
+      });
+
+      if (res.ok) {
+        setShowMoveEventModal(false);
+        router.push(`/seasons/${target.seasonId}`);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la mutarea evenimentului.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMoveDayConfirm = async (target: { eventId?: string }) => {
+    if (!dayToMove || !target.eventId) return;
+
+    try {
+      const res = await fetch(`/api/days/${dayToMove.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetEventId: target.eventId,
+        }),
+      });
+
+      if (res.ok) {
+        setDayToMove(null);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la mutarea zilei.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const openEditEventModal = () => {
     if (!event) return;
     setEditEventName(event.name);
@@ -232,7 +285,6 @@ export default function EventDaysPage() {
   const handleOpenDirectUpload = async () => {
     let dayIdToUse = days[0]?.id;
 
-    // If no days exist yet, auto-create 1 day for event start date
     if (!dayIdToUse && event) {
       try {
         const res = await fetch('/api/days', {
@@ -369,6 +421,18 @@ export default function EventDaysPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Move Event Button */}
+          {canManage && (
+            <button
+              onClick={() => setShowMoveEventModal(true)}
+              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              title="Mută Evenimentul în alt Sezon"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span className="hidden sm:inline">Mută</span>
+            </button>
+          )}
+
           {/* Edit Event Button */}
           {canManage && (
             <button
@@ -462,6 +526,7 @@ export default function EventDaysPage() {
           <MediaGrid
             assets={mediaAssets}
             onDeleteAsset={handleDeleteAsset}
+            onRefreshNeeded={fetchData}
             userRole={role}
           />
         </div>
@@ -504,6 +569,17 @@ export default function EventDaysPage() {
                       <div className="flex items-center space-x-1">
                         {canManage && (
                           <>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDayToMove(day);
+                              }}
+                              className="p-1.5 rounded-lg bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border transition"
+                              title="Mută Ziua în alt Eveniment"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
@@ -556,6 +632,31 @@ export default function EventDaysPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Move Event Modal */}
+      {showMoveEventModal && event && (
+        <MoveTargetModal
+          isOpen={showMoveEventModal}
+          mode="event"
+          itemTitle={event.name}
+          currentSeasonId={event.seasonId}
+          onClose={() => setShowMoveEventModal(false)}
+          onConfirm={handleMoveEventConfirm}
+        />
+      )}
+
+      {/* Move Day Modal */}
+      {dayToMove && (
+        <MoveTargetModal
+          isOpen={Boolean(dayToMove)}
+          mode="day"
+          itemTitle={dayToMove.label || formatDate(dayToMove.date)}
+          currentSeasonId={event?.seasonId}
+          currentEventId={eventId}
+          onClose={() => setDayToMove(null)}
+          onConfirm={handleMoveDayConfirm}
+        />
       )}
 
       {/* Direct Upload Modal */}

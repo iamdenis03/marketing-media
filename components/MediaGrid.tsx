@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { MediaItem, Lightbox } from './Lightbox';
+import { MoveTargetModal } from './MoveTargetModal';
 import { 
   Play, 
   Download, 
@@ -9,20 +10,29 @@ import {
   Image as ImageIcon, 
   Video as VideoIcon, 
   Tag as TagIcon, 
-  Search 
+  Search,
+  CheckSquare,
+  Square,
+  FolderKanban,
+  X
 } from 'lucide-react';
 
 interface MediaGridProps {
   assets: MediaItem[];
   onDeleteAsset?: (id: string) => void;
+  onRefreshNeeded?: () => void;
   userRole?: string;
 }
 
-export function MediaGrid({ assets, onDeleteAsset, userRole }: MediaGridProps) {
+export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: MediaGridProps) {
   const [selectedAsset, setSelectedAsset] = useState<MediaItem | null>(null);
   const [filterType, setFilterType] = useState<'ALL' | 'PHOTO' | 'VIDEO'>('ALL');
   const [selectedTag, setSelectedTag] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Multi-select state
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [showMoveModal, setShowMoveModal] = useState(false);
 
   const allTags = Array.from(
     new Set(assets.flatMap((a) => a.tags?.map((t) => t.name) || []))
@@ -40,8 +50,67 @@ export function MediaGrid({ assets, onDeleteAsset, userRole }: MediaGridProps) {
     return true;
   });
 
+  const isAllSelected =
+    filteredAssets.length > 0 &&
+    filteredAssets.every((a) => selectedAssetIds.includes(a.id));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedAssetIds([]);
+    } else {
+      setSelectedAssetIds(filteredAssets.map((a) => a.id));
+    }
+  };
+
+  const toggleSelectAsset = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (selectedAssetIds.includes(id)) {
+      setSelectedAssetIds(selectedAssetIds.filter((item) => item !== id));
+    } else {
+      setSelectedAssetIds([...selectedAssetIds, id]);
+    }
+  };
+
+  const handleBulkMoveConfirm = async (target: { dayId?: string }) => {
+    if (!target.dayId || selectedAssetIds.length === 0) return;
+
+    try {
+      const res = await fetch('/api/media/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assetIds: selectedAssetIds,
+          targetDayId: target.dayId,
+        }),
+      });
+
+      if (res.ok) {
+        setSelectedAssetIds([]);
+        if (onRefreshNeeded) onRefreshNeeded();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la mutarea fișierelor.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedAssetIds.length === 0 || !onDeleteAsset) return;
+
+    if (confirm(`Ești sigur că vrei să ștergi ${selectedAssetIds.length} fișiere selectate?`)) {
+      for (const id of selectedAssetIds) {
+        await onDeleteAsset(id);
+      }
+      setSelectedAssetIds([]);
+    }
+  };
+
+  const canManage = userRole === 'ADMIN' || userRole === 'EDITOR';
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       
       {/* Controls / Filter Bar */}
       <div className="platform-card p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -57,6 +126,21 @@ export function MediaGrid({ assets, onDeleteAsset, userRole }: MediaGridProps) {
             className="w-full pl-9 pr-4 py-2 bg-platform-bg rounded-xl border border-platform-border text-xs text-slate-200 placeholder-platform-textMuted focus:outline-none focus:border-platform-green"
           />
         </div>
+
+        {/* Multi-Select Select All Button */}
+        {canManage && filteredAssets.length > 0 && (
+          <button
+            onClick={toggleSelectAll}
+            className="px-3 py-1.5 rounded-xl bg-platform-bg hover:bg-platform-tertiary text-xs font-mono font-semibold text-platform-textSecondary hover:text-white border border-platform-border transition flex items-center space-x-1.5 shrink-0"
+          >
+            {isAllSelected ? (
+              <CheckSquare className="w-4 h-4 text-platform-green" />
+            ) : (
+              <Square className="w-4 h-4 text-platform-textMuted" />
+            )}
+            <span>{isAllSelected ? 'Deselectează Tot' : 'Selectează Tot'}</span>
+          </button>
+        )}
 
         {/* Filter by Type */}
         <div className="flex items-center space-x-1 bg-platform-bg p-1 rounded-xl border border-platform-border">
@@ -121,7 +205,7 @@ export function MediaGrid({ assets, onDeleteAsset, userRole }: MediaGridProps) {
           <ImageIcon className="w-12 h-12 text-platform-textMuted mx-auto mb-3" />
           <h3 className="text-slate-200 font-semibold text-sm">Nu s-a găsit niciun fișier media</h3>
           <p className="text-xs text-platform-textSecondary mt-1">
-            Încearcă să schimbi filtrele sau încarcă fișiere noi în această zi.
+            Încearcă să schimbi filtrele sau încarcă fișiere noi.
           </p>
         </div>
       ) : (
@@ -130,13 +214,38 @@ export function MediaGrid({ assets, onDeleteAsset, userRole }: MediaGridProps) {
             const isVideo = asset.type === 'VIDEO';
             const mediaUrl = `/api/media/${asset.filePath}`;
             const thumbUrl = asset.thumbnailPath ? `/api/media/${asset.thumbnailPath}` : mediaUrl;
+            const isSelected = selectedAssetIds.includes(asset.id);
 
             return (
               <div
                 key={asset.id}
-                className="group relative bg-platform-card border border-platform-border rounded-2xl overflow-hidden aspect-square flex items-center justify-center hover:border-platform-green transition-all duration-300 shadow-md cursor-pointer"
-                onClick={() => setSelectedAsset(asset)}
+                className={`group relative bg-platform-card border rounded-2xl overflow-hidden aspect-square flex items-center justify-center transition-all duration-300 shadow-md cursor-pointer ${
+                  isSelected
+                    ? 'border-platform-green ring-2 ring-platform-green/50'
+                    : 'border-platform-border hover:border-platform-green'
+                }`}
+                onClick={() => {
+                  if (selectedAssetIds.length > 0) {
+                    toggleSelectAsset(asset.id, { stopPropagation: () => {} } as any);
+                  } else {
+                    setSelectedAsset(asset);
+                  }
+                }}
               >
+                {/* Select Checkbox (top right) */}
+                {canManage && (
+                  <button
+                    onClick={(e) => toggleSelectAsset(asset.id, e)}
+                    className="absolute top-2.5 right-2.5 z-20 p-1 rounded-lg bg-black/60 backdrop-blur hover:bg-black/80 transition"
+                  >
+                    {isSelected ? (
+                      <CheckSquare className="w-5 h-5 text-platform-green" />
+                    ) : (
+                      <Square className="w-5 h-5 text-slate-300 opacity-60 group-hover:opacity-100" />
+                    )}
+                  </button>
+                )}
+
                 {/* Image or Video Thumbnail */}
                 {!isVideo ? (
                   <img
@@ -163,7 +272,7 @@ export function MediaGrid({ assets, onDeleteAsset, userRole }: MediaGridProps) {
 
                 {/* Hover Overlay Actions */}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-3">
-                  <div className="flex justify-end space-x-1.5">
+                  <div className="flex justify-end space-x-1.5 pr-8">
                     {/* Direct Download */}
                     <a
                       href={mediaUrl}
@@ -212,6 +321,55 @@ export function MediaGrid({ assets, onDeleteAsset, userRole }: MediaGridProps) {
             );
           })}
         </div>
+      )}
+
+      {/* Floating Bulk Action Bar when items selected */}
+      {canManage && selectedAssetIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-platform-card/95 backdrop-blur-xl border border-platform-green/50 rounded-2xl px-6 py-3 shadow-2xl flex items-center space-x-4 animate-fadeIn">
+          <span className="text-xs font-mono font-bold text-platform-green flex items-center space-x-2">
+            <CheckSquare className="w-4 h-4" />
+            <span>{selectedAssetIds.length} selectate</span>
+          </span>
+
+          <div className="h-4 w-px bg-platform-border" />
+
+          <button
+            onClick={() => setShowMoveModal(true)}
+            className="btn-platform-primary px-3.5 py-1.5 text-xs flex items-center space-x-1.5 shadow font-mono"
+          >
+            <FolderKanban className="w-4 h-4" />
+            <span>Mută Fișierele</span>
+          </button>
+
+          {userRole === 'ADMIN' && onDeleteAsset && (
+            <button
+              onClick={handleBulkDelete}
+              className="px-3.5 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 text-xs font-mono font-semibold shadow transition flex items-center space-x-1.5"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Șterge Fișierele</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setSelectedAssetIds([])}
+            className="p-1 rounded-lg text-platform-textMuted hover:text-white transition"
+            title="Anulează Selecția"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Move Target Modal for Media */}
+      {showMoveModal && (
+        <MoveTargetModal
+          isOpen={showMoveModal}
+          mode="media"
+          itemTitle={`${selectedAssetIds.length} fișiere selectate`}
+          onClose={() => setShowMoveModal(false)}
+          onConfirm={handleBulkMoveConfirm}
+        />
       )}
 
       {/* Lightbox Modal */}

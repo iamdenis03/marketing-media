@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, Sparkles, FolderKanban, Trash2, Pencil } from 'lucide-react';
+import { MoveTargetModal } from '@/components/MoveTargetModal';
+import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, Sparkles, FolderKanban, Trash2, Pencil, ExternalLink } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import { formatDate, toInputDateFormat } from '@/lib/utils';
@@ -33,6 +34,9 @@ export default function SeasonEventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Move Event State
+  const [eventToMove, setEventToMove] = useState<EventItem | null>(null);
 
   // Edit Season State (ADMIN only)
   const [showEditSeasonModal, setShowEditSeasonModal] = useState(false);
@@ -121,6 +125,30 @@ export default function SeasonEventsPage() {
       console.error(err);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleMoveEventConfirm = async (target: { seasonId?: string }) => {
+    if (!eventToMove || !target.seasonId) return;
+
+    try {
+      const res = await fetch(`/api/events/${eventToMove.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetSeasonId: target.seasonId,
+        }),
+      });
+
+      if (res.ok) {
+        setEventToMove(null);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'A apărut o eroare la mutarea evenimentului.');
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -338,9 +366,16 @@ export default function SeasonEventsPage() {
                     {evt._count?.days || 0} Zile
                   </span>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1.5">
                     {canManage && (
                       <>
+                        <button
+                          onClick={() => setEventToMove(evt)}
+                          className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green transition border border-platform-border"
+                          title="Mută Evenimentul în alt Sezon"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => openEditEventModal(evt)}
                           className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green transition border border-platform-border"
@@ -398,6 +433,18 @@ export default function SeasonEventsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Move Event Modal */}
+      {eventToMove && (
+        <MoveTargetModal
+          isOpen={Boolean(eventToMove)}
+          mode="event"
+          itemTitle={eventToMove.name}
+          currentSeasonId={seasonId}
+          onClose={() => setEventToMove(null)}
+          onConfirm={handleMoveEventConfirm}
+        />
       )}
 
       {/* Create Event Modal */}
