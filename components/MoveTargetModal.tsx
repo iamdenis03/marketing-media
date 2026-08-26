@@ -183,7 +183,7 @@ export function MoveTargetModal({
                 <select
                   value={selectedSeasonId}
                   onChange={(e) => handleSeasonChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-platform-bg border border-platform-border rounded-xl text-xs text-white outline-none focus:border-platform-green font-mono"
+                  className="w-full px-3.5 py-2.5 bg-platform-bg border border-platform-border rounded-xl text-xs text-white outline-none focus:border-platform-green font-mono min-h-[44px]"
                 >
                   {structure.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -208,7 +208,7 @@ export function MoveTargetModal({
                     <select
                       value={selectedEventId}
                       onChange={(e) => handleEventChange(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-platform-bg border border-platform-border rounded-xl text-xs text-white outline-none focus:border-platform-green font-mono"
+                      className="w-full px-3.5 py-2.5 bg-platform-bg border border-platform-border rounded-xl text-xs text-white outline-none focus:border-platform-green font-mono min-h-[44px]"
                     >
                       {availableEvents.map((e) => (
                         <option key={e.id} value={e.id}>
@@ -235,7 +235,7 @@ export function MoveTargetModal({
                     <select
                       value={selectedDayId}
                       onChange={(e) => setSelectedDayId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-platform-bg border border-platform-border rounded-xl text-xs text-white outline-none focus:border-platform-green font-mono"
+                      className="w-full px-3.5 py-2.5 bg-platform-bg border border-platform-border rounded-xl text-xs text-white outline-none focus:border-platform-green font-mono min-h-[44px]"
                     >
                       {availableDays.map((d) => (
                         <option key={d.id} value={d.id}>
@@ -270,7 +270,7 @@ export function MoveTargetModal({
             type="button"
             onClick={onClose}
             disabled={moving}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition min-h-[44px]"
           >
             Anulează
           </button>
@@ -278,7 +278,7 @@ export function MoveTargetModal({
             type="button"
             onClick={handleSave}
             disabled={!canConfirm() || moving}
-            className="btn-platform-primary px-5 py-2 text-xs flex items-center space-x-2 shadow disabled:opacity-50"
+            className="btn-platform-primary px-5 py-2.5 text-xs flex items-center space-x-2 shadow disabled:opacity-50 min-h-[44px]"
           >
             {moving ? (
               <>

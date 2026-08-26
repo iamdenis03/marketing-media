@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { CardActionMenu } from '@/components/CardActionMenu';
 import { Calendar, Plus, ChevronRight, Trophy, Folder, Loader2, Trash2, Pencil } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -212,32 +213,23 @@ export default function SeasonsPage() {
                     {season._count?.events || 0} Evenimente
                   </span>
 
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-1.5">
                     {isAdmin && (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            openEditModal(season);
-                          }}
-                          className="p-1.5 rounded-lg bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border transition"
-                          title="Editează / Redenumește Sezon"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSeasonToDelete(season);
-                          }}
-                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition"
-                          title="Șterge Sezon"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </>
+                      <CardActionMenu
+                        actions={[
+                          {
+                            label: 'Editează Sezon',
+                            icon: <Pencil className="w-4 h-4" />,
+                            onClick: () => openEditModal(season),
+                          },
+                          {
+                            label: 'Șterge Sezon',
+                            icon: <Trash2 className="w-4 h-4" />,
+                            onClick: () => setSeasonToDelete(season),
+                            variant: 'danger' as const,
+                          },
+                        ]}
+                      />
                     )}
                     <Link href={`/seasons/${season.id}`}>
                       <ChevronRight className="w-5 h-5 text-platform-textMuted group-hover:text-platform-green group-hover:translate-x-1 transition" />

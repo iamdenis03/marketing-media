@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { MediaGrid } from '@/components/MediaGrid';
 import { MediaUploadModal } from '@/components/MediaUploadModal';
 import { MoveTargetModal } from '@/components/MoveTargetModal';
+import { CardActionMenu } from '@/components/CardActionMenu';
 import { MediaItem } from '@/components/Lightbox';
 import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, CalendarDays, Images, Trash2, Pencil, UploadCloud, ExternalLink } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -566,43 +567,36 @@ export default function EventDaysPage() {
                         <span>{day._count?.mediaAssets || 0} Fișiere Media</span>
                       </span>
 
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center space-x-1.5">
                         {canManage && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setDayToMove(day);
-                              }}
-                              className="p-1.5 rounded-lg bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border transition"
-                              title="Mută Ziua în alt Eveniment"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                openEditDayModal(day);
-                              }}
-                              className="p-1.5 rounded-lg bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border transition"
-                              title="Editează Zi"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setDayToDelete(day);
-                              }}
-                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition"
-                              title="Șterge Zi"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
+                          <CardActionMenu
+                            actions={[
+                              {
+                                label: 'Mută în alt Eveniment',
+                                icon: <ExternalLink className="w-4 h-4 text-platform-green" />,
+                                onClick: () => setDayToMove(day),
+                                variant: 'primary' as const,
+                              },
+                              {
+                                label: 'Editează Zi',
+                                icon: <Pencil className="w-4 h-4" />,
+                                onClick: () => openEditDayModal(day),
+                              },
+                              {
+                                label: 'Descarcă ZIP Zi',
+                                icon: <Download className="w-4 h-4" />,
+                                onClick: () => {},
+                                href: `/api/download/day/${day.id}`,
+                                download: true,
+                              },
+                              {
+                                label: 'Șterge Zi',
+                                icon: <Trash2 className="w-4 h-4" />,
+                                onClick: () => setDayToDelete(day),
+                                variant: 'danger' as const,
+                              },
+                            ]}
+                          />
                         )}
                         <Link href={`/days/${day.id}`}>
                           <ChevronRight className="w-5 h-5 text-platform-textMuted group-hover:text-platform-green group-hover:translate-x-1 transition" />

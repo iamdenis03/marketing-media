@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { MoveTargetModal } from '@/components/MoveTargetModal';
+import { CardActionMenu, CardActionItem } from '@/components/CardActionMenu';
 import { Calendar, MapPin, Plus, ChevronRight, Download, Loader2, Sparkles, FolderKanban, Trash2, Pencil, ExternalLink } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
@@ -367,40 +368,38 @@ export default function SeasonEventsPage() {
                   </span>
                   
                   <div className="flex items-center space-x-1.5">
-                    {canManage && (
-                      <>
-                        <button
-                          onClick={() => setEventToMove(evt)}
-                          className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green transition border border-platform-border"
-                          title="Mută Evenimentul în alt Sezon"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => openEditEventModal(evt)}
-                          className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green transition border border-platform-border"
-                          title="Editează / Redenumește Eveniment"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setEventToDelete(evt)}
-                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition border border-red-500/20"
-                          title="Șterge Eveniment"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-
-                    <a
-                      href={`/api/download/event/${evt.id}`}
-                      download
-                      className="p-2 rounded-xl bg-platform-tertiary hover:bg-platform-green/20 text-slate-300 hover:text-platform-green transition border border-platform-border"
-                      title="Descarcă toate fișierele evenimentului ca ZIP"
-                    >
-                      <Download className="w-4 h-4" />
-                    </a>
+                    <CardActionMenu
+                      actions={[
+                        ...(canManage ? [
+                          {
+                            label: 'Mută în alt Sezon',
+                            icon: <ExternalLink className="w-4 h-4 text-platform-green" />,
+                            onClick: () => setEventToMove(evt),
+                            variant: 'primary' as const,
+                          },
+                          {
+                            label: 'Editează Eveniment',
+                            icon: <Pencil className="w-4 h-4" />,
+                            onClick: () => openEditEventModal(evt),
+                          },
+                        ] : []),
+                        {
+                          label: 'Descarcă ZIP',
+                          icon: <Download className="w-4 h-4" />,
+                          onClick: () => {},
+                          href: `/api/download/event/${evt.id}`,
+                          download: true,
+                        },
+                        ...(canManage ? [
+                          {
+                            label: 'Șterge Eveniment',
+                            icon: <Trash2 className="w-4 h-4" />,
+                            onClick: () => setEventToDelete(evt),
+                            variant: 'danger' as const,
+                          },
+                        ] : []),
+                      ]}
+                    />
                   </div>
                 </div>
 

@@ -14,7 +14,9 @@ import {
   CheckSquare,
   Square,
   FolderKanban,
-  X
+  X,
+  CheckCircle2,
+  ListFilter
 } from 'lucide-react';
 
 interface MediaGridProps {
@@ -62,8 +64,8 @@ export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: 
     }
   };
 
-  const toggleSelectAsset = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const toggleSelectAsset = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (selectedAssetIds.includes(id)) {
       setSelectedAssetIds(selectedAssetIds.filter((item) => item !== id));
     } else {
@@ -110,98 +112,115 @@ export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: 
   const canManage = userRole === 'ADMIN' || userRole === 'EDITOR';
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-5 relative">
       
-      {/* Controls / Filter Bar */}
-      <div className="platform-card p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      {/* Controls & Search / Filter Toolbar */}
+      <div className="platform-card p-3.5 sm:p-4 space-y-3">
         
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-4 h-4 text-platform-textMuted absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Caută după nume sau etichetă..."
-            className="w-full pl-9 pr-4 py-2 bg-platform-bg rounded-xl border border-platform-border text-xs text-slate-200 placeholder-platform-textMuted focus:outline-none focus:border-platform-green"
-          />
-        </div>
-
-        {/* Multi-Select Select All Button */}
-        {canManage && filteredAssets.length > 0 && (
-          <button
-            onClick={toggleSelectAll}
-            className="px-3 py-1.5 rounded-xl bg-platform-bg hover:bg-platform-tertiary text-xs font-mono font-semibold text-platform-textSecondary hover:text-white border border-platform-border transition flex items-center space-x-1.5 shrink-0"
-          >
-            {isAllSelected ? (
-              <CheckSquare className="w-4 h-4 text-platform-green" />
-            ) : (
-              <Square className="w-4 h-4 text-platform-textMuted" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Search bar */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 text-platform-textMuted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Caută fișier sau etichetă..."
+              className="w-full pl-9 pr-9 py-2 bg-platform-bg rounded-xl border border-platform-border text-xs text-slate-200 placeholder-platform-textMuted focus:outline-none focus:border-platform-green min-h-[40px]"
+            />
+            {searchQuery !== '' && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-platform-textMuted hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             )}
-            <span>{isAllSelected ? 'Deselectează Tot' : 'Selectează Tot'}</span>
-          </button>
-        )}
+          </div>
 
-        {/* Filter by Type */}
-        <div className="flex items-center space-x-1 bg-platform-bg p-1 rounded-xl border border-platform-border">
-          <button
-            onClick={() => setFilterType('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition ${
-              filterType === 'ALL'
-                ? 'bg-platform-green text-slate-950 shadow'
-                : 'text-platform-textSecondary hover:text-slate-200'
-            }`}
-          >
-            Toate ({assets.length})
-          </button>
-          <button
-            onClick={() => setFilterType('PHOTO')}
-            className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition ${
-              filterType === 'PHOTO'
-                ? 'bg-platform-green text-slate-950 shadow'
-                : 'text-platform-textSecondary hover:text-slate-200'
-            }`}
-          >
-            <ImageIcon className="w-3.5 h-3.5" />
-            <span>Poze</span>
-          </button>
-          <button
-            onClick={() => setFilterType('VIDEO')}
-            className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition ${
-              filterType === 'VIDEO'
-                ? 'bg-platform-green text-slate-950 shadow'
-                : 'text-platform-textSecondary hover:text-slate-200'
-            }`}
-          >
-            <VideoIcon className="w-3.5 h-3.5" />
-            <span>Video</span>
-          </button>
+          {/* Select All Toggle Button */}
+          {canManage && filteredAssets.length > 0 && (
+            <button
+              onClick={toggleSelectAll}
+              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-semibold border transition flex items-center justify-center space-x-2 shrink-0 min-h-[40px] ${
+                isAllSelected
+                  ? 'bg-platform-green/10 border-platform-green/40 text-platform-green'
+                  : 'bg-platform-bg hover:bg-platform-tertiary border-platform-border text-platform-textSecondary hover:text-white'
+              }`}
+            >
+              {isAllSelected ? (
+                <CheckSquare className="w-4 h-4 text-platform-green" />
+              ) : (
+                <Square className="w-4 h-4 text-platform-textMuted" />
+              )}
+              <span>{isAllSelected ? 'Deselectează Tot' : 'Selectează Tot'}</span>
+            </button>
+          )}
         </div>
 
-        {/* Filter by Tag Dropdown */}
-        {allTags.length > 0 && (
-          <div className="flex items-center space-x-2">
-            <TagIcon className="w-4 h-4 text-platform-green shrink-0" />
-            <select
-              value={selectedTag}
-              onChange={(e) => setSelectedTag(e.target.value)}
-              className="bg-platform-bg border border-platform-border text-xs text-slate-200 rounded-xl px-3 py-2 outline-none focus:border-platform-green font-mono"
+        {/* Filter Pills & Tags Row */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-platform-border/50">
+          {/* Type Filters */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto scrollbar-none py-0.5 max-w-full">
+            <button
+              onClick={() => setFilterType('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition shrink-0 min-h-[36px] ${
+                filterType === 'ALL'
+                  ? 'bg-platform-green text-slate-950 shadow-md font-bold'
+                  : 'bg-platform-bg hover:bg-platform-tertiary text-platform-textSecondary hover:text-slate-200 border border-platform-border/60'
+              }`}
             >
-              <option value="ALL">Toate Etichetele</option>
-              {allTags.map((t) => (
-                <option key={t} value={t}>
-                  #{t}
-                </option>
-              ))}
-            </select>
+              Toate ({assets.length})
+            </button>
+            <button
+              onClick={() => setFilterType('PHOTO')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition shrink-0 min-h-[36px] ${
+                filterType === 'PHOTO'
+                  ? 'bg-platform-green text-slate-950 shadow-md font-bold'
+                  : 'bg-platform-bg hover:bg-platform-tertiary text-platform-textSecondary hover:text-slate-200 border border-platform-border/60'
+              }`}
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+              <span>Poze</span>
+            </button>
+            <button
+              onClick={() => setFilterType('VIDEO')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition shrink-0 min-h-[36px] ${
+                filterType === 'VIDEO'
+                  ? 'bg-platform-green text-slate-950 shadow-md font-bold'
+                  : 'bg-platform-bg hover:bg-platform-tertiary text-platform-textSecondary hover:text-slate-200 border border-platform-border/60'
+              }`}
+            >
+              <VideoIcon className="w-3.5 h-3.5" />
+              <span>Video</span>
+            </button>
           </div>
-        )}
+
+          {/* Tag Filter Dropdown */}
+          {allTags.length > 0 && (
+            <div className="flex items-center space-x-2 shrink-0">
+              <TagIcon className="w-3.5 h-3.5 text-platform-green shrink-0" />
+              <select
+                value={selectedTag}
+                onChange={(e) => setSelectedTag(e.target.value)}
+                className="bg-platform-bg border border-platform-border text-xs text-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-platform-green font-mono min-h-[36px]"
+              >
+                <option value="ALL">Toate Etichetele</option>
+                {allTags.map((t) => (
+                  <option key={t} value={t}>
+                    #{t}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
 
       </div>
 
       {/* Media Grid */}
       {filteredAssets.length === 0 ? (
-        <div className="platform-card text-center py-16">
+        <div className="platform-card text-center py-16 px-4">
           <ImageIcon className="w-12 h-12 text-platform-textMuted mx-auto mb-3" />
           <h3 className="text-slate-200 font-semibold text-sm">Nu s-a găsit niciun fișier media</h3>
           <p className="text-xs text-platform-textSecondary mt-1">
@@ -209,7 +228,7 @@ export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: 
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {filteredAssets.map((asset) => {
             const isVideo = asset.type === 'VIDEO';
             const mediaUrl = `/api/media/${asset.filePath}`;
@@ -219,34 +238,36 @@ export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: 
             return (
               <div
                 key={asset.id}
-                className={`group relative bg-platform-card border rounded-2xl overflow-hidden aspect-square flex items-center justify-center transition-all duration-300 shadow-md cursor-pointer ${
+                className={`group relative bg-platform-card border rounded-2xl overflow-hidden aspect-square flex items-center justify-center transition-all duration-200 shadow-md cursor-pointer select-none ${
                   isSelected
-                    ? 'border-platform-green ring-2 ring-platform-green/50'
-                    : 'border-platform-border hover:border-platform-green'
+                    ? 'border-platform-green ring-2 ring-platform-green/60 scale-[0.98]'
+                    : 'border-platform-border hover:border-platform-green/70'
                 }`}
                 onClick={() => {
                   if (selectedAssetIds.length > 0) {
-                    toggleSelectAsset(asset.id, { stopPropagation: () => {} } as any);
+                    toggleSelectAsset(asset.id);
                   } else {
                     setSelectedAsset(asset);
                   }
                 }}
               >
-                {/* Select Checkbox (top right) */}
+                {/* Select Checkbox (top right) - Always touchable for admins/editors */}
                 {canManage && (
                   <button
+                    type="button"
                     onClick={(e) => toggleSelectAsset(asset.id, e)}
-                    className="absolute top-2.5 right-2.5 z-20 p-1 rounded-lg bg-black/60 backdrop-blur hover:bg-black/80 transition"
+                    className="absolute top-2 right-2 z-20 p-1.5 rounded-xl bg-slate-950/70 backdrop-blur hover:bg-black transition active:scale-90"
+                    title={isSelected ? 'Deselectează' : 'Selectează'}
                   >
                     {isSelected ? (
-                      <CheckSquare className="w-5 h-5 text-platform-green" />
+                      <CheckCircle2 className="w-5 h-5 text-platform-green fill-platform-green/20" />
                     ) : (
-                      <Square className="w-5 h-5 text-slate-300 opacity-60 group-hover:opacity-100" />
+                      <Square className="w-5 h-5 text-slate-300 opacity-70 group-hover:opacity-100" />
                     )}
                   </button>
                 )}
 
-                {/* Image or Video Thumbnail */}
+                {/* Media Thumbnail */}
                 {!isVideo ? (
                   <img
                     src={thumbUrl}
@@ -256,8 +277,8 @@ export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: 
                   />
                 ) : (
                   <div className="w-full h-full bg-platform-tertiary flex flex-col items-center justify-center relative p-3">
-                    <div className="p-3.5 rounded-full bg-platform-green/20 text-platform-green shadow-lg border border-platform-green/30 group-hover:scale-110 transition-transform">
-                      <Play className="w-6 h-6 fill-current ml-0.5" />
+                    <div className="p-3 rounded-full bg-platform-green/20 text-platform-green shadow-lg border border-platform-green/30 group-hover:scale-110 transition-transform">
+                      <Play className="w-5 h-5 fill-current ml-0.5" />
                     </div>
                     <span className="text-[10px] font-mono font-semibold text-platform-green mt-2 truncate max-w-full px-2">
                       VIDEO
@@ -266,12 +287,12 @@ export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: 
                 )}
 
                 {/* Type Badge */}
-                <span className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded bg-black/70 backdrop-blur text-[10px] font-mono font-semibold text-platform-green border border-platform-green/30">
+                <span className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-slate-950/75 backdrop-blur text-[10px] font-mono font-semibold text-platform-green border border-platform-green/30">
                   {isVideo ? 'VIDEO' : 'FOTO'}
                 </span>
 
-                {/* Hover Overlay Actions */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-3">
+                {/* Hover / Active Info Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-2.5">
                   <div className="flex justify-end space-x-1.5 pr-8">
                     {/* Direct Download */}
                     <a
@@ -284,9 +305,10 @@ export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: 
                       <Download className="w-3.5 h-3.5" />
                     </a>
 
-                    {/* Delete for Admin */}
+                    {/* Quick Delete */}
                     {userRole === 'ADMIN' && onDeleteAsset && (
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (confirm(`Ești sigur că vrei să ștergi fișierul "${asset.originalName}"?`)) {
@@ -323,37 +345,46 @@ export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: 
         </div>
       )}
 
-      {/* Floating Bulk Action Bar when items selected */}
+      {/* Dynamic Floating Action Toolbar: Appears ONLY when 1 or more assets are selected */}
       {canManage && selectedAssetIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-platform-card/95 backdrop-blur-xl border border-platform-green/50 rounded-2xl px-6 py-3 shadow-2xl flex items-center space-x-4 animate-fadeIn">
-          <span className="text-xs font-mono font-bold text-platform-green flex items-center space-x-2">
-            <CheckSquare className="w-4 h-4" />
-            <span>{selectedAssetIds.length} selectate</span>
-          </span>
+        <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-auto z-40 bg-slate-900/95 backdrop-blur-xl border border-platform-green/60 rounded-2xl px-4 py-3 shadow-2xl flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          
+          <div className="flex items-center space-x-2">
+            <span className="px-2.5 py-1 rounded-lg bg-platform-green/20 text-platform-green border border-platform-green/30 text-xs font-mono font-bold flex items-center space-x-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>{selectedAssetIds.length} selectate</span>
+            </span>
+          </div>
 
-          <div className="h-4 w-px bg-platform-border" />
+          <div className="hidden sm:block h-4 w-px bg-platform-border" />
 
+          {/* Prominent MOVE button - Primary Action */}
           <button
+            type="button"
             onClick={() => setShowMoveModal(true)}
-            className="btn-platform-primary px-3.5 py-1.5 text-xs flex items-center space-x-1.5 shadow font-mono"
+            className="btn-platform-primary px-4 py-2 text-xs flex items-center space-x-2 shadow-lg font-mono font-bold shrink-0 active:scale-95"
           >
             <FolderKanban className="w-4 h-4" />
             <span>Mută Fișierele</span>
           </button>
 
+          {/* Delete Button for Admin */}
           {userRole === 'ADMIN' && onDeleteAsset && (
             <button
+              type="button"
               onClick={handleBulkDelete}
-              className="px-3.5 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 text-xs font-mono font-semibold shadow transition flex items-center space-x-1.5"
+              className="px-3.5 py-2 rounded-xl bg-red-500/15 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 text-xs font-mono font-semibold transition flex items-center space-x-1.5 shrink-0 active:scale-95"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>Șterge Fișierele</span>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Șterge</span>
             </button>
           )}
 
+          {/* Cancel Selection */}
           <button
+            type="button"
             onClick={() => setSelectedAssetIds([])}
-            className="p-1 rounded-lg text-platform-textMuted hover:text-white transition"
+            className="p-1.5 rounded-xl text-platform-textMuted hover:text-white transition hover:bg-platform-tertiary ml-auto"
             title="Anulează Selecția"
           >
             <X className="w-4 h-4" />
