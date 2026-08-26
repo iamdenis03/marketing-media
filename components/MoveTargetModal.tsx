@@ -338,7 +338,7 @@ export function MoveTargetModal({
 
                     {/* LEVEL 1: EVENTS INSIDE EXPANDED SEASON */}
                     {isSeasonExpanded && hasEvents && (
-                      <div className="border-l border-platform-border/60 ml-4 pl-3 space-y-1 py-0.5">
+                      <div className="border-l border-platform-border/60 ml-2.5 sm:ml-4 pl-2 sm:pl-3 space-y-1 py-0.5">
                         {season.events.map((evt) => {
                           const isEventExpanded = expandedEventIds.has(evt.id);
                           const isEventTarget = mode === 'day' && selectedEventId === evt.id;
@@ -350,7 +350,7 @@ export function MoveTargetModal({
                               {/* EVENT SUB-FOLDER */}
                               <div
                                 onClick={() => handleSelectEvent(season.id, evt)}
-                                className={`flex items-center space-x-2 px-2.5 py-1.5 rounded-lg transition cursor-pointer group min-h-[36px] ${
+                                className={`flex items-center space-x-2 px-2 py-1.5 rounded-lg transition cursor-pointer group min-h-[36px] ${
                                   isEventTarget
                                     ? 'bg-platform-green/20 border border-platform-green text-white font-bold shadow-sm'
                                     : selectedEventId === evt.id
@@ -371,13 +371,13 @@ export function MoveTargetModal({
                                     )}
                                   </button>
                                 ) : (
-                                  <div className="w-5" />
+                                  <div className="w-4 sm:w-5" />
                                 )}
 
                                 <FolderKanban className="w-3.5 h-3.5 text-platform-blue shrink-0" />
-                                <span className="flex-1 truncate">{evt.name}</span>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-platform-tertiary/60 text-platform-textMuted shrink-0">
-                                  {evt.days.length} zile
+                                <span className="flex-1 truncate text-xs">{evt.name}</span>
+                                <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-platform-tertiary/60 text-platform-textMuted shrink-0">
+                                  {evt.days.length} z
                                 </span>
 
                                 {mode === 'day' && isEventTarget && (
@@ -387,7 +387,7 @@ export function MoveTargetModal({
 
                               {/* LEVEL 2: DAYS INSIDE EXPANDED EVENT */}
                               {isEventExpanded && hasDays && (
-                                <div className="border-l border-platform-border/50 ml-3.5 pl-3 space-y-1 py-0.5">
+                                <div className="border-l border-platform-border/50 ml-2 sm:ml-3.5 pl-1.5 sm:pl-3 space-y-1 py-0.5">
                                   {evt.days.map((day) => {
                                     const isDayTarget = mode === 'media' && selectedDayId === day.id;
 

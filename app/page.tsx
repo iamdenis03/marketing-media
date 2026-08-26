@@ -169,15 +169,15 @@ export default function SeasonsPage() {
       <Breadcrumbs items={[]} />
 
       {/* Header Banner */}
-      <div className="platform-card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="platform-card p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-platform-tertiary border border-platform-border">
-              <Trophy className="w-6 h-6 text-platform-green" />
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-platform-tertiary border border-platform-border shrink-0">
+              <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-platform-green" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold font-display text-slate-100">Sezoane Competiționale FTC</h1>
+            <h1 className="text-lg sm:text-2xl font-bold font-display text-slate-100">Sezoane Competiționale FTC</h1>
           </div>
-          <p className="text-xs sm:text-sm text-platform-textSecondary mt-2">
+          <p className="text-xs sm:text-sm text-platform-textSecondary mt-1.5 sm:mt-2">
             Selectează un sezon pentru a accesa evenimentele, meciurile și arhiva media.
           </p>
         </div>
@@ -185,7 +185,7 @@ export default function SeasonsPage() {
         {isAdmin && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
+            className="btn-platform-primary px-4 py-2.5 text-xs flex items-center justify-center space-x-2 shrink-0 shadow w-full sm:w-auto min-h-[40px] font-semibold"
           >
             <Plus className="w-4 h-4" />
             <span>Adaugă Sezon Nou</span>

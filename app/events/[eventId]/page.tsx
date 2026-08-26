@@ -400,19 +400,19 @@ export default function EventDaysPage() {
       />
 
       {/* Event Header Banner */}
-      <div className="platform-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="platform-card p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
         <div className="space-y-1">
-          <div className="flex items-center space-x-3">
-            <h1 className="text-xl sm:text-2xl font-bold font-display text-white">{event?.name}</h1>
+          <div className="flex items-center space-x-2.5">
+            <h1 className="text-lg sm:text-2xl font-bold font-display text-white">{event?.name}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-xs text-platform-textSecondary font-mono pt-1">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-platform-textSecondary font-mono pt-1">
             <span className="flex items-center space-x-1.5">
-              <MapPin className="w-3.5 h-3.5 text-platform-blue" />
+              <MapPin className="w-3.5 h-3.5 text-platform-blue shrink-0" />
               <span>{event?.location}</span>
             </span>
             {event && (
               <span className="flex items-center space-x-1.5">
-                <Calendar className="w-3.5 h-3.5 text-platform-green" />
+                <Calendar className="w-3.5 h-3.5 text-platform-green shrink-0" />
                 <span>
                   {formatDate(event.startDate)} - {formatDate(event.endDate)}
                 </span>
@@ -421,12 +421,12 @@ export default function EventDaysPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start sm:justify-end">
           {/* Move Event Button */}
           {canManage && (
             <button
               onClick={() => setShowMoveEventModal(true)}
-              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono min-h-[38px]"
               title="Mută Evenimentul în alt Sezon"
             >
               <ExternalLink className="w-4 h-4" />
@@ -438,7 +438,7 @@ export default function EventDaysPage() {
           {canManage && (
             <button
               onClick={openEditEventModal}
-              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono min-h-[38px]"
               title="Editează Eveniment"
             >
               <Pencil className="w-4 h-4" />
@@ -450,7 +450,7 @@ export default function EventDaysPage() {
           {canManage && (
             <button
               onClick={() => setShowDeleteEventModal(true)}
-              className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono min-h-[38px]"
               title="Șterge Evenimentul Curent"
             >
               <Trash2 className="w-4 h-4" />
@@ -462,18 +462,18 @@ export default function EventDaysPage() {
           <a
             href={`/api/download/event/${eventId}`}
             download
-            className="px-3.5 py-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-2 shrink-0 font-mono"
+            className="px-3 py-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono min-h-[38px]"
             title="Descarcă toate fișierele ca ZIP"
           >
             <Download className="w-4 h-4" />
-            <span>ZIP Eveniment</span>
+            <span>ZIP</span>
           </a>
 
           {/* Direct Upload Button */}
           {canManage && (
             <button
               onClick={handleOpenDirectUpload}
-              className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
+              className="btn-platform-primary px-3.5 py-2.5 text-xs flex items-center justify-center space-x-1.5 shadow flex-1 sm:flex-initial min-h-[38px] font-semibold"
             >
               <UploadCloud className="w-4 h-4" />
               <span>Încarcă Poze/Video</span>
@@ -483,29 +483,29 @@ export default function EventDaysPage() {
       </div>
 
       {/* Tab Navigation / View Modes */}
-      <div className="flex items-center justify-between border-b border-platform-border pb-3">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between border-b border-platform-border pb-3 gap-2">
+        <div className="flex items-center space-x-1.5 overflow-x-auto scrollbar-none py-0.5">
           <button
             onClick={() => setViewMode('gallery')}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-semibold transition flex items-center space-x-2 ${
+            className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition flex items-center space-x-1.5 shrink-0 min-h-[36px] ${
               viewMode === 'gallery'
                 ? 'bg-platform-green/20 text-platform-green border border-platform-green/40'
                 : 'bg-platform-card text-platform-textSecondary border border-platform-border hover:text-white'
             }`}
           >
-            <Images className="w-4 h-4" />
-            <span>Galeriă Directă ({mediaAssets.length})</span>
+            <Images className="w-3.5 h-3.5" />
+            <span>Galerie Directă ({mediaAssets.length})</span>
           </button>
 
           <button
             onClick={() => setViewMode('days')}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-semibold transition flex items-center space-x-2 ${
+            className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition flex items-center space-x-1.5 shrink-0 min-h-[36px] ${
               viewMode === 'days'
                 ? 'bg-platform-green/20 text-platform-green border border-platform-green/40'
                 : 'bg-platform-card text-platform-textSecondary border border-platform-border hover:text-white'
             }`}
           >
-            <CalendarDays className="w-4 h-4" />
+            <CalendarDays className="w-3.5 h-3.5" />
             <span>Zile Eveniment ({days.length})</span>
           </button>
         </div>
@@ -513,7 +513,7 @@ export default function EventDaysPage() {
         {canManage && viewMode === 'days' && (
           <button
             onClick={() => setShowCreateDayModal(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1 font-mono"
+            className="px-3.5 py-2 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center justify-center space-x-1 font-mono shrink-0 min-h-[36px]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Adaugă Zi</span>

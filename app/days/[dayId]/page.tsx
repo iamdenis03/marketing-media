@@ -198,32 +198,32 @@ export default function DayGalleryPage() {
       />
 
       {/* Header Banner */}
-      <div className="platform-card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="platform-card p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div className="space-y-1">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-platform-tertiary border border-platform-border">
-              <Images className="w-6 h-6 text-platform-green" />
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-platform-tertiary border border-platform-border shrink-0">
+              <Images className="w-5 h-5 sm:w-6 sm:h-6 text-platform-green" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold font-display text-white">{dayTitle}</h1>
+            <h1 className="text-lg sm:text-2xl font-bold font-display text-white">{dayTitle}</h1>
           </div>
           {day?.date && (
             <p className="text-xs sm:text-sm text-platform-textSecondary font-mono flex items-center space-x-2 mt-1">
-              <Calendar className="w-3.5 h-3.5 text-platform-green" />
+              <Calendar className="w-3.5 h-3.5 text-platform-green shrink-0" />
               <span>Data: {formatDate(day.date)}</span>
             </p>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
           {/* Move Day Button */}
           {canManage && (
             <button
               onClick={() => setShowMoveDayModal(true)}
-              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono min-h-[38px]"
               title="Mută Ziua în alt Eveniment"
             >
               <ExternalLink className="w-4 h-4" />
-              <span className="hidden sm:inline">Mută Zi</span>
+              <span className="hidden sm:inline">Mută</span>
             </button>
           )}
 
@@ -231,7 +231,7 @@ export default function DayGalleryPage() {
           {canManage && (
             <button
               onClick={openEditDayModal}
-              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              className="p-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-slate-300 hover:text-platform-green border border-platform-border text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono min-h-[38px]"
               title="Editează Ziua"
             >
               <Pencil className="w-4 h-4" />
@@ -243,11 +243,11 @@ export default function DayGalleryPage() {
           {canManage && (
             <button
               onClick={() => setShowDeleteDayModal(true)}
-              className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono"
+              className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold shadow transition flex items-center space-x-1.5 shrink-0 font-mono min-h-[38px]"
               title="Șterge Ziua Curentă"
             >
               <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Șterge Ziua</span>
+              <span className="hidden sm:inline">Șterge</span>
             </button>
           )}
 
@@ -255,17 +255,17 @@ export default function DayGalleryPage() {
           <a
             href={`/api/download/day/${dayId}`}
             download
-            className="px-4 py-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-mono font-semibold shadow transition flex items-center space-x-2 shrink-0"
+            className="px-3 py-2.5 rounded-xl bg-platform-tertiary hover:bg-platform-border text-platform-green border border-platform-border text-xs font-mono font-semibold shadow transition flex items-center space-x-1.5 shrink-0 min-h-[38px]"
           >
             <Download className="w-4 h-4" />
-            <span>Descarcă ZIP Ziua</span>
+            <span>ZIP</span>
           </a>
 
           {/* Upload Button */}
           {canManage && (
             <button
               onClick={() => setShowUploadModal(true)}
-              className="btn-platform-primary px-4 py-2.5 text-xs flex items-center space-x-2 shrink-0 shadow"
+              className="btn-platform-primary px-3.5 py-2.5 text-xs flex items-center justify-center space-x-1.5 shadow flex-1 sm:flex-initial min-h-[38px] font-semibold"
             >
               <UploadCloud className="w-4 h-4" />
               <span>Încarcă Poze/Video</span>
