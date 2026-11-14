@@ -1,30 +1,29 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { X, UploadCloud, FileImage, FileVideo, CheckCircle2, AlertCircle, Loader2, Tag } from 'lucide-react';
+import { X, UploadCloud, FileImage, FileVideo, Tag } from 'lucide-react';
+import { useUploads, formatBytes } from '@/components/UploadManager';
 
 interface MediaUploadModalProps {
   dayId: string;
   isOpen: boolean;
   onClose: () => void;
-  onUploadSuccess: () => void;
+  /** @deprecated pages refresh via useUploadCompleted */
+  onUploadSuccess?: () => void;
 }
 
 interface FileItem {
   id: string;
   file: File;
-  progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error';
-  errorMsg?: string;
 }
 
 export function MediaUploadModal({ dayId, isOpen, onClose, onUploadSuccess }: MediaUploadModalProps) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [tagInput, setTagInput] = useState<string>('');
   const [tags, setTags] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { store } = useUploads();
 
   if (!isOpen) return null;
 
@@ -32,8 +31,6 @@ export function MediaUploadModal({ dayId, isOpen, onClose, onUploadSuccess }: Me
     const fileItems: FileItem[] = Array.from(newFiles).map((file) => ({
       id: Math.random().toString(36).substring(2, 9),
       file,
-      progress: 0,
-      status: 'pending',
     }));
 
     setFiles((prev) => [...prev, ...fileItems]);
@@ -66,54 +63,24 @@ export function MediaUploadModal({ dayId, isOpen, onClose, onUploadSuccess }: Me
     setFiles(files.filter((f) => f.id !== id));
   };
 
-  const handleStartUpload = async () => {
-    if (files.length === 0) return;
-
-    setIsUploading(true);
-
-    const formData = new FormData();
-    formData.append('dayId', dayId);
-    formData.append('tags', JSON.stringify(tags));
-
-    files.forEach((item) => {
-      formData.append('files', item.file);
-    });
-
-    setFiles((prev) =>
-      prev.map((f) => ({ ...f, status: 'uploading', progress: 50 }))
-    );
-
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'A apărut o eroare la upload.');
-      }
-
-      setFiles((prev) =>
-        prev.map((f) => ({ ...f, status: 'success', progress: 100 }))
-      );
-
-      setTimeout(() => {
-        setIsUploading(false);
-        onUploadSuccess();
-        onClose();
-        setFiles([]);
-        setTags([]);
-      }, 1000);
-    } catch (err: any) {
-      console.error(err);
-      setFiles((prev) =>
-        prev.map((f) => ({ ...f, status: 'error', errorMsg: err.message }))
-      );
-      setIsUploading(false);
-    }
+  const resetAndClose = () => {
+    setFiles([]);
+    setTags([]);
+    setTagInput('');
+    onClose();
   };
+
+  // Hands the files to the global upload queue; progress continues in the panel at the bottom-right,
+  // even if this window is closed or the user navigates to another page.
+  const handleStartUpload = () => {
+    if (files.length === 0) return;
+    const pendingTag = tagInput.trim().toLowerCase();
+    const allTags = pendingTag && !tags.includes(pendingTag) ? [...tags, pendingTag] : tags;
+    store.enqueue(files.map((f) => f.file), dayId, allTags);
+    resetAndClose();
+  };
+
+  const totalSize = files.reduce((s, f) => s + f.file.size, 0);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -131,8 +98,7 @@ export function MediaUploadModal({ dayId, isOpen, onClose, onUploadSuccess }: Me
             </div>
           </div>
           <button
-            onClick={onClose}
-            disabled={isUploading}
+            onClick={resetAndClose}
             className="p-1.5 rounded-lg bg-platform-tertiary hover:bg-platform-border text-platform-textSecondary hover:text-white transition border border-platform-border"
           >
             <X className="w-5 h-5" />
@@ -172,7 +138,7 @@ export function MediaUploadModal({ dayId, isOpen, onClose, onUploadSuccess }: Me
               Trage fișierele aici sau <span className="text-platform-green underline">răsfoiește</span>
             </p>
             <p className="text-xs font-mono text-platform-textMuted">
-              Suportat: JPG, PNG, HEIC, MP4, MOV. Max 500MB / fișier video.
+              Poze și video, orice mărime. Fișierele mari se încarcă pe bucăți și se reiau automat dacă pică netul.
             </p>
           </div>
 
@@ -209,11 +175,11 @@ export function MediaUploadModal({ dayId, isOpen, onClose, onUploadSuccess }: Me
           {files.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-xs font-mono font-semibold uppercase text-platform-textMuted">
-                Fișiere selectate ({files.length}):
+                Fișiere selectate ({files.length} · {formatBytes(totalSize)}):
               </h4>
               <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
                 {files.map((item) => {
-                  const isImage = item.file.type.startsWith('image/');
+                  const isImage = !(item.file.type.startsWith('video/') || /\.(mp4|mov|m4v|mkv|avi|webm|mts)$/i.test(item.file.name));
                   return (
                     <div
                       key={item.id}
@@ -228,33 +194,18 @@ export function MediaUploadModal({ dayId, isOpen, onClose, onUploadSuccess }: Me
                         <div className="truncate">
                           <p className="font-semibold text-slate-200 truncate">{item.file.name}</p>
                           <p className="text-[10px] font-mono text-platform-textMuted">
-                            {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                            {formatBytes(item.file.size)}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-3">
-                        {item.status === 'uploading' && (
-                          <Loader2 className="w-4 h-4 text-platform-green animate-spin" />
-                        )}
-                        {item.status === 'success' && (
-                          <CheckCircle2 className="w-4 h-4 text-platform-green" />
-                        )}
-                        {item.status === 'error' && (
-                          <span className="text-red-400 text-[11px] flex items-center space-x-1">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            <span>{item.errorMsg || 'Eroare'}</span>
-                          </span>
-                        )}
-                        {item.status === 'pending' && !isUploading && (
-                          <button
-                            onClick={() => removeFile(item.id)}
-                            className="p-1 text-slate-500 hover:text-red-400 transition"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        onClick={() => removeFile(item.id)}
+                        className="p-1 text-slate-500 hover:text-red-400 transition"
+                        aria-label="Elimină"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   );
                 })}
@@ -267,28 +218,18 @@ export function MediaUploadModal({ dayId, isOpen, onClose, onUploadSuccess }: Me
         {/* Footer Actions */}
         <div className="p-4 border-t border-platform-border bg-platform-bg flex items-center justify-end space-x-3">
           <button
-            onClick={onClose}
-            disabled={isUploading}
+            onClick={resetAndClose}
             className="px-4 py-2 rounded-xl text-xs font-semibold text-platform-textSecondary hover:bg-platform-tertiary transition"
           >
             Anulează
           </button>
           <button
             onClick={handleStartUpload}
-            disabled={files.length === 0 || isUploading}
+            disabled={files.length === 0}
             className="btn-platform-primary px-5 py-2 text-xs flex items-center space-x-2 shadow disabled:opacity-50"
           >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Se încarcă...</span>
-              </>
-            ) : (
-              <>
-                <UploadCloud className="w-4 h-4" />
-                <span>Începe Upload ({files.length})</span>
-              </>
-            )}
+            <UploadCloud className="w-4 h-4" />
+            <span>Încarcă ({files.length})</span>
           </button>
         </div>
 

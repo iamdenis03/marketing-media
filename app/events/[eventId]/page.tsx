@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { MediaGrid } from '@/components/MediaGrid';
 import { MediaUploadModal } from '@/components/MediaUploadModal';
+import { useUploadCompleted } from '@/components/UploadManager';
 import { MoveTargetModal } from '@/components/MoveTargetModal';
 import { CardActionMenu } from '@/components/CardActionMenu';
 import { MediaItem } from '@/components/Lightbox';
@@ -82,6 +83,9 @@ export default function EventDaysPage() {
   useEffect(() => {
     fetchData();
   }, [eventId]);
+
+  // Refresh counts/grid as soon as any queued upload finishes
+  useUploadCompleted(() => fetchData());
 
   const fetchData = async () => {
     try {

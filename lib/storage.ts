@@ -74,11 +74,11 @@ export async function deleteFile(subPath: string): Promise<void> {
  * Generates an image thumbnail using sharp and saves it next to original file
  */
 export async function generateThumbnail(
-  buffer: Buffer,
+  input: Buffer | string,
   mimeType: string,
   subPath: string
 ): Promise<string | null> {
-  if (!mimeType.startsWith('image/')) {
+  if (!mimeType.startsWith('image/') && !/\.(jpe?g|png|webp|gif|tiff?|heic|heif)$/i.test(subPath)) {
     return null;
   }
 
@@ -89,7 +89,8 @@ export async function generateThumbnail(
     
     ensureParentDirExists(thumbAbsolutePath);
 
-    await sharp(buffer)
+    await sharp(input, { limitInputPixels: false })
+      .rotate()
       .resize(400, 400, { fit: 'cover' })
       .toFormat('webp', { quality: 80 })
       .toFile(thumbAbsolutePath);

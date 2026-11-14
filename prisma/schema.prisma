@@ -82,7 +82,7 @@ model MediaAsset {
   uploadedById  String
   uploadedBy    User      @relation(fields: [uploadedById], references: [id])
   uploadedAt    DateTime  @default(now())
-  fileSize      Int
+  fileSize      Float // bytes; Float (DOUBLE) because INT overflows above 2 GB
   originalName  String
   tags          Tag[]
 }

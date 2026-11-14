@@ -294,7 +294,7 @@ export function MediaGrid({ assets, onDeleteAsset, onRefreshNeeded, userRole }: 
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-2">
                   <div className="flex justify-end space-x-1 pr-7">
                     <a
-                      href={mediaUrl}
+                      href={`${mediaUrl}?download=1&name=${encodeURIComponent(asset.originalName || asset.fileName)}`}
                       download={asset.originalName}
                       onClick={(e) => e.stopPropagation()}
                       className="p-1 rounded bg-platform-tertiary hover:bg-platform-green hover:text-slate-950 text-platform-green backdrop-blur shadow transition border border-platform-border"

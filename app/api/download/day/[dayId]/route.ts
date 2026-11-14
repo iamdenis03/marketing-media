@@ -3,10 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAbsolutePath } from '@/lib/storage';
-import * as archiverModule from 'archiver';
-const archiver = (archiverModule as any).default || archiverModule;
+import { ZipArchive } from 'archiver';
 import fs from 'fs';
-import { PassThrough } from 'stream';
+import { PassThrough, Readable } from 'stream';
 
 export async function GET(
   req: NextRequest,
@@ -37,7 +36,8 @@ export async function GET(
 
     const zipFileName = `${day.event.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_${day.label ? day.label.replace(/[^a-zA-Z0-9_-]/g, '_') : day.id}.zip`;
 
-    const archive = archiver('zip', { zlib: { level: 5 } });
+    // Photos/videos are already compressed: storing is much faster and the ZIP ends up the same size
+    const archive = new (ZipArchive as any)({ store: true });
     const passThrough = new PassThrough();
 
     archive.pipe(passThrough);
@@ -57,17 +57,13 @@ export async function GET(
     archive.finalize();
 
     // Convert PassThrough Node stream to Web ReadableStream
-    const webStream = new ReadableStream({
-      start(controller) {
-        passThrough.on('data', (chunk: any) => controller.enqueue(chunk));
-        passThrough.on('end', () => controller.close());
-        passThrough.on('error', (err) => controller.error(err));
-      },
-      cancel() {
-        passThrough.destroy();
-        archive.abort();
-      },
+    // Stop zipping if the browser cancels the download
+    let finished = false;
+    passThrough.on('end', () => (finished = true));
+    passThrough.on('close', () => {
+      if (!finished) archive.abort();
     });
+    const webStream = Readable.toWeb(passThrough) as any;
 
     return new NextResponse(webStream, {
       headers: {

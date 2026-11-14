@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { MediaGrid } from '@/components/MediaGrid';
 import { MediaUploadModal } from '@/components/MediaUploadModal';
+import { useUploadCompleted } from '@/components/UploadManager';
 import { MoveTargetModal } from '@/components/MoveTargetModal';
 import { MediaItem } from '@/components/Lightbox';
 import { Calendar, UploadCloud, Download, Loader2, Images, Trash2, Pencil, ExternalLink } from 'lucide-react';
@@ -48,6 +49,9 @@ export default function DayGalleryPage() {
   useEffect(() => {
     fetchDayData();
   }, [dayId]);
+
+  // Refresh the grid as soon as a queued upload for this day finishes
+  useUploadCompleted(() => fetchDayData(), dayId);
 
   const fetchDayData = async () => {
     try {

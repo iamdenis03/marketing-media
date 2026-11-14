@@ -81,7 +81,7 @@ export function Lightbox({ asset, assets, onClose, onSelect }: LightboxProps) {
 
         <div className="flex items-center space-x-3">
           <a
-            href={mediaUrl}
+            href={`${mediaUrl}?download=1&name=${encodeURIComponent(asset.originalName || asset.fileName)}`}
             download={asset.originalName}
             className="btn-platform-primary flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold shadow"
           >
