@@ -18,8 +18,11 @@ import {
 /* Upload engine: chunked, parallel, resumable, survives page changes  */
 /* ------------------------------------------------------------------ */
 
-const MAX_PARALLEL_FILES = 3;
+const MAX_PARALLEL_FILES = 2;
 const MAX_PARALLEL_CHUNKS = 3; // per file
+// Browsers open at most 6 connections per server. Keep uploads to 4 so pages and
+// thumbnails always have free connections and the platform stays usable while uploading.
+const MAX_INFLIGHT_CHUNKS = 4;
 const RETRY_DELAYS_S = [1, 2, 4, 8, 15, 30, 30, 60, 60, 60];
 const CHUNK_TIMEOUT_MS = 10 * 60 * 1000;
 export const UPLOAD_COMPLETE_EVENT = 'media-upload-complete';
@@ -71,6 +74,23 @@ class UploadStore {
   private listeners = new Set<() => void>();
   private emitTimer: ReturnType<typeof setTimeout> | null = null;
   private active = 0;
+  private inflightChunks = 0;
+  private slotWaiters: (() => void)[] = [];
+
+  /** Global cap on simultaneous chunk requests across all files. */
+  private acquireSlot(): Promise<void> {
+    if (this.inflightChunks < MAX_INFLIGHT_CHUNKS) {
+      this.inflightChunks++;
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => this.slotWaiters.push(resolve));
+  }
+
+  private releaseSlot() {
+    const next = this.slotWaiters.shift();
+    if (next) next(); // hand the slot over directly
+    else this.inflightChunks--;
+  }
 
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
@@ -223,9 +243,14 @@ class UploadStore {
     return body;
   }
 
-  private sendChunk(id: string, uploadId: string, index: number, blob: Blob): Promise<void> {
+  private async sendChunk(id: string, uploadId: string, index: number, blob: Blob): Promise<void> {
     const inn = this.internal.get(id)!;
-    return new Promise((resolve, reject) => {
+    await this.acquireSlot();
+    if (inn.canceled) {
+      this.releaseSlot();
+      throw new Error('canceled');
+    }
+    return new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       inn.xhrs.add(xhr);
       xhr.open('PUT', `/api/upload/${uploadId}/chunk?index=${index}`);
@@ -235,7 +260,11 @@ class UploadStore {
         inn.inflight.set(index, e.loaded);
         this.updateProgress(id);
       };
+      let settled = false;
       const done = (err?: Error) => {
+        if (settled) return;
+        settled = true;
+        this.releaseSlot();
         inn.xhrs.delete(xhr);
         inn.inflight.delete(index);
         err ? reject(err) : resolve();
