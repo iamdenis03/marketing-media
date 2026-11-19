@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { getAbsolutePath } from '@/lib/storage';
 import fs from 'fs';
 import path from 'path';
-import { Readable } from 'stream';
+import { nodeStreamToWeb } from '@/lib/webStream';
 import mime from 'mime-types';
 
 export const dynamic = 'force-dynamic';
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest, { params }: { params: { path: string
           return new NextResponse(null, { status: 416, headers: { ...headers, 'Content-Range': `bytes */${size}` } });
         }
         const stream = fs.createReadStream(absolutePath, { start, end, highWaterMark: 1024 * 1024 });
-        return new NextResponse(Readable.toWeb(stream) as any, {
+        return new NextResponse(nodeStreamToWeb(stream), {
           status: 206,
           headers: {
             ...headers,
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest, { params }: { params: { path: string
     }
 
     const stream = fs.createReadStream(absolutePath, { highWaterMark: 1024 * 1024 });
-    return new NextResponse(Readable.toWeb(stream) as any, {
+    return new NextResponse(nodeStreamToWeb(stream), {
       headers: { ...headers, 'Content-Length': String(size) },
     });
   } catch (error: any) {

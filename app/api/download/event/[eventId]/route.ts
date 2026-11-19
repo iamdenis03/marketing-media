@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { getAbsolutePath } from '@/lib/storage';
 import { ZipArchive } from 'archiver';
 import fs from 'fs';
-import { PassThrough, Readable } from 'stream';
+import { PassThrough } from 'stream';
+import { nodeStreamToWeb } from '@/lib/webStream';
 
 export async function GET(
   req: NextRequest,
@@ -69,12 +70,7 @@ export async function GET(
     archive.finalize();
 
     // Stop zipping if the browser cancels the download
-    let finished = false;
-    passThrough.on('end', () => (finished = true));
-    passThrough.on('close', () => {
-      if (!finished) archive.abort();
-    });
-    const webStream = Readable.toWeb(passThrough) as any;
+    const webStream = nodeStreamToWeb(passThrough, () => archive.abort());
 
     return new NextResponse(webStream, {
       headers: {
