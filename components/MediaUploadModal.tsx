@@ -138,7 +138,7 @@ export function MediaUploadModal({ dayId, isOpen, onClose, onUploadSuccess }: Me
               Trage fișierele aici sau <span className="text-platform-green underline">răsfoiește</span>
             </p>
             <p className="text-xs font-mono text-platform-textMuted">
-              Poze și video, orice mărime. Fișierele mari se încarcă pe bucăți și se reiau automat dacă pică netul.
+              Poze și video, orice mărime. Se reiau automat dacă pică netul. Fișierele care există deja în eveniment sunt sărite.
             </p>
           </div>
 

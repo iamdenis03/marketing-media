@@ -44,9 +44,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Format nesuportat (doar poze și video).' }, { status: 400 });
     }
 
-    const day = await prisma.day.findUnique({ where: { id: dayId }, select: { id: true } });
+    const day = await prisma.day.findUnique({ where: { id: dayId }, select: { id: true, eventId: true } });
     if (!day) {
       return NextResponse.json({ error: 'Ziua nu mai există.' }, { status: 404 });
+    }
+
+    // Duplicate protection: the same file (name + exact size) already exists somewhere in this event
+    const alreadyThere = await prisma.mediaAsset.findFirst({
+      where: { originalName: name, fileSize: size, day: { eventId: day.eventId } },
+      select: { id: true, day: { select: { label: true, date: true } } },
+    });
+    if (alreadyThere) {
+      const where = alreadyThere.day.label || alreadyThere.day.date.toISOString().slice(0, 10);
+      return NextResponse.json({ duplicate: true, assetId: alreadyThere.id, existingDay: where });
     }
 
     await cleanupStaleSessions();

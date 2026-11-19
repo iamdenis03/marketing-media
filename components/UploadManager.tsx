@@ -27,7 +27,7 @@ const RETRY_DELAYS_S = [1, 2, 4, 8, 15, 30, 30, 60, 60, 60];
 const CHUNK_TIMEOUT_MS = 10 * 60 * 1000;
 export const UPLOAD_COMPLETE_EVENT = 'media-upload-complete';
 
-export type UploadStatus = 'queued' | 'preparing' | 'uploading' | 'finalizing' | 'done' | 'error' | 'canceled';
+export type UploadStatus = 'queued' | 'preparing' | 'uploading' | 'finalizing' | 'done' | 'skipped' | 'error' | 'canceled';
 
 export interface UploadItem {
   id: string;
@@ -40,6 +40,7 @@ export interface UploadItem {
   note?: string; // transient info: "reîncercare", "offline"
   error?: string;
   resumed?: boolean;
+  existingDay?: string; // set when skipped because the file already exists
 }
 
 interface Internal {
@@ -126,7 +127,14 @@ class UploadStore {
   }
 
   enqueue(files: File[], dayId: string, tags: string[]) {
+    const key = (f: File, d: string) => `${d}|${f.name}|${f.size}|${f.lastModified}`;
+    const queued = new Set(
+      this.items.filter((i) => !['error', 'canceled'].includes(i.status)).map((i) => key(i.file, i.dayId))
+    );
     for (const file of files) {
+      // Same file selected twice (or already in the queue): add it only once
+      if (queued.has(key(file, dayId))) continue;
+      queued.add(key(file, dayId));
       const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
       this.items.push({ id, file, dayId, tags, status: 'queued', uploaded: 0, speed: 0 });
       this.internal.set(id, { xhrs: new Set(), inflight: new Map(), doneBytes: 0, samples: [], canceled: false });
@@ -138,7 +146,7 @@ class UploadStore {
   cancel(id: string) {
     const it = this.get(id);
     const inn = this.internal.get(id);
-    if (!it || !inn || it.status === 'done') return;
+    if (!it || !inn || it.status === 'done' || it.status === 'skipped') return;
     inn.canceled = true;
     inn.xhrs.forEach((x) => x.abort());
     if (inn.uploadId) {
@@ -148,7 +156,7 @@ class UploadStore {
   }
 
   cancelAll() {
-    this.items.filter((i) => !['done', 'canceled', 'error'].includes(i.status)).forEach((i) => this.cancel(i.id));
+    this.items.filter((i) => !['done', 'skipped', 'canceled', 'error'].includes(i.status)).forEach((i) => this.cancel(i.id));
   }
 
   retry(id: string) {
@@ -161,15 +169,16 @@ class UploadStore {
 
   remove(id: string) {
     const it = this.get(id);
-    if (it && !['done', 'error', 'canceled'].includes(it.status)) this.cancel(id);
+    if (it && !['done', 'skipped', 'error', 'canceled'].includes(it.status)) this.cancel(id);
     this.items = this.items.filter((i) => i.id !== id);
     this.internal.delete(id);
     this.emitNow();
   }
 
   clearFinished() {
-    this.items.filter((i) => ['done', 'canceled'].includes(i.status)).forEach((i) => this.internal.delete(i.id));
-    this.items = this.items.filter((i) => !['done', 'canceled'].includes(i.status));
+    const finished = ['done', 'skipped', 'canceled'];
+    this.items.filter((i) => finished.includes(i.status)).forEach((i) => this.internal.delete(i.id));
+    this.items = this.items.filter((i) => !finished.includes(i.status));
     this.emitNow();
   }
 
@@ -312,6 +321,10 @@ class UploadStore {
           }),
         })
       );
+      if (init.duplicate) {
+        this.patch(id, { status: 'skipped', existingDay: init.existingDay, uploaded: 0, speed: 0, note: undefined });
+        return;
+      }
       inn.uploadId = init.uploadId;
       const chunkSize: number = init.chunkSize;
       const total: number = init.totalChunks;
@@ -433,6 +446,7 @@ function UploadPanel() {
   const active = items.filter((i) => ACTIVE.includes(i.status));
   const failed = items.filter((i) => i.status === 'error');
   const done = items.filter((i) => i.status === 'done');
+  const skipped = items.filter((i) => i.status === 'skipped');
 
   // Warn before closing the tab while something is still uploading
   useEffect(() => {
@@ -457,7 +471,13 @@ function UploadPanel() {
   let title: string;
   if (active.length) title = `Se încarcă ${active.length} ${active.length === 1 ? 'fișier' : 'fișiere'}`;
   else if (failed.length) title = `${failed.length} ${failed.length === 1 ? 'încărcare eșuată' : 'încărcări eșuate'}`;
-  else title = `${done.length} ${done.length === 1 ? 'fișier încărcat' : 'fișiere încărcate'}`;
+  else
+    title = [
+      done.length ? `${done.length} ${done.length === 1 ? 'fișier încărcat' : 'fișiere încărcate'}` : '',
+      skipped.length ? `${skipped.length} ${skipped.length === 1 ? 'sărit' : 'sărite'} (existau deja)` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ') || 'Nimic de încărcat';
 
   const onClose = () => {
     if (active.length && !window.confirm('Anulezi toate încărcările în curs?')) return;
@@ -517,7 +537,7 @@ function UploadPanel() {
               <UploadRow key={it.id} item={it} store={store} />
             ))}
           </ul>
-          {(done.length > 0 || failed.length > 0) && active.length > 0 && (
+          {(done.length > 0 || skipped.length > 0 || failed.length > 0) && active.length > 0 && (
             <div className="px-4 py-2 border-t border-platform-border text-right">
               <button
                 onClick={() => store.clearFinished()}
@@ -556,6 +576,9 @@ function UploadRow({ item, store }: { item: UploadItem; store: UploadStore }) {
       break;
     case 'finalizing':
       sub = item.note || 'Se salvează pe server…';
+      break;
+    case 'skipped':
+      sub = `Există deja${item.existingDay ? ` în „${item.existingDay}”` : ''} – sărit`;
       break;
     case 'done':
       sub = `Încărcat · ${formatBytes(item.file.size)}`;
@@ -596,6 +619,7 @@ function UploadRow({ item, store }: { item: UploadItem; store: UploadStore }) {
             <span className="text-[11px] font-mono text-platform-textSecondary w-10 text-right">{Math.floor(pct)}%</span>
           )}
           {item.status === 'done' && <CheckCircle2 className="w-5 h-5 text-platform-green" />}
+          {item.status === 'skipped' && <CheckCircle2 className="w-5 h-5 text-platform-textMuted" aria-label="Există deja" />}
           {(item.status === 'error' || item.status === 'canceled') && (
             <button
               onClick={() => store.retry(item.id)}
@@ -606,7 +630,7 @@ function UploadRow({ item, store }: { item: UploadItem; store: UploadStore }) {
               <RotateCw className="w-4 h-4" />
             </button>
           )}
-          {item.status !== 'done' && (
+          {item.status !== 'done' && item.status !== 'skipped' && (
             <button
               onClick={() => (busy || item.status === 'queued' ? store.cancel(item.id) : store.remove(item.id))}
               className="p-2 rounded-lg text-platform-textSecondary hover:text-red-400 hover:bg-platform-tertiary transition"
