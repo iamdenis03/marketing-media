@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createPasswordResetCode } from '@/lib/mainDb';
 import { sendPasswordResetCodeEmail } from '@/lib/mailer';
+import { blockedFor, clientIp, recordAttempt, waitMessage } from '@/lib/rateLimit';
+
+const HOUR = 60 * 60 * 1000;
 
 export async function POST(req: Request) {
   try {
@@ -12,6 +15,16 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // Max 3 codes per account and 10 requests per IP each hour (stops email spam and code guessing)
+    const emailKey = `forgot:email:${email.toLowerCase().trim()}`;
+    const ipKey = `forgot:ip:${clientIp(req.headers)}`;
+    const wait = Math.max(blockedFor(emailKey, 3, HOUR), blockedFor(ipKey, 10, HOUR));
+    if (wait > 0) {
+      return NextResponse.json({ error: waitMessage(wait) }, { status: 429 });
+    }
+    recordAttempt(emailKey, HOUR);
+    recordAttempt(ipKey, HOUR);
 
     const res = await createPasswordResetCode(email);
 

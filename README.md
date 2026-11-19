@@ -56,7 +56,7 @@ Creează fișierul `.env` în rădăcina proiectului:
 PORT=3005
 
 # NextAuth Secretele
-NEXTAUTH_SECRET="vvrobots-marketing-media-super-secret-key-2026"
+NEXTAUTH_SECRET="generate-with: openssl rand -base64 48"
 NEXTAUTH_URL="http://SERVER_IP:3005"
 
 # Bază de date PostgreSQL (sau SQLite "file:./dev.db")
